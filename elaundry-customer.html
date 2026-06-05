@@ -1375,13 +1375,14 @@ function setOrderStep(n){
 }
 
 function goOrderStep2(){
-  const nama=document.getElementById('o-nama').value.trim();
+  const nama=(document.getElementById('o-nama').value.trim() || SESSION?.nama || '').trim();
   const berat=parseFloat(document.getElementById('o-berat').value)||0;
   const msg=document.getElementById('msg-order1');
   if(!nama){msg.innerHTML='<div class="alert-box alert-err">Nama wajib diisi.</div>';return;}
   if(berat<0.5){msg.innerHTML='<div class="alert-box alert-err">Berat minimal 0,5 kg.</div>';return;}
   msg.innerHTML='';
   const namaL={cuci_kering:'Cuci + Kering',cuci_setrika:'Cuci + Setrika',setrika:'Setrika Saja',ekspres:'Ekspres'};
+  const service=getServiceByCode(ORDER_JENIS);
   const hp=document.getElementById('o-hp').value;
   const catatan=document.getElementById('o-catatan').value;
   const est=berat*ORDER_HARGA;
@@ -1408,8 +1409,8 @@ async function simpanOrder(){
     const res=await api({
       action:'createOrder',
       customerId:SESSION?.id||'',
-      nama:document.getElementById('o-nama').value.trim(),
-      hp:document.getElementById('o-hp').value,
+      nama:document.getElementById('o-nama').value.trim() || SESSION?.nama || '',
+      hp:document.getElementById('o-hp').value || SESSION?.hp || '',
       jenis:ORDER_JENIS,jenisLabel:service.name || namaL[ORDER_JENIS],
       hargaPerKg:ORDER_HARGA,
       beratEst:parseFloat(document.getElementById('o-berat').value)||1,
