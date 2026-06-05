@@ -349,10 +349,6 @@ html,body{height:100%;background:#CBD8E3;font-family:var(--font);-webkit-font-sm
         <div style="text-align:center;margin-top:16px;font-size:12px;font-weight:600;color:#9BADC0">
           Belum punya akun? <span style="color:var(--gp);cursor:pointer" onclick="switchAuthTab('daftar')">Daftar sekarang</span>
         </div>
-        <!-- Demo mode hint -->
-        <div style="margin-top:16px">
-          <div class="demo-banner"><i class="ti ti-flask"></i><span>Mode demo aktif — data disimpan lokal. Pasang URL API untuk mode produksi.</span></div>
-        </div>
       </div>
 
       <!-- DAFTAR -->
@@ -543,11 +539,13 @@ html,body{height:100%;background:#CBD8E3;font-family:var(--font);-webkit-font-sm
     <div class="filter-row">
       <select id="histori-filter" onchange="loadHistori()">
         <option value="">Semua status</option>
-        <option value="masuk">Baru Masuk</option>
+        <option value="dibuat">Pesanan Dibuat</option>
+        <option value="diterima">Pesanan Diterima</option>
         <option value="cuci">Sedang Dicuci</option>
         <option value="gosok">Sedang Digosok</option>
-        <option value="selesai">Siap Diambil</option>
+        <option value="siap_diambil">Siap Diambil</option>
         <option value="diambil">Sudah Diambil</option>
+        <option value="selesai_final">Selesai</option>
       </select>
     </div>
     <div class="summary-cards" style="margin-bottom:14px">
@@ -604,9 +602,10 @@ html,body{height:100%;background:#CBD8E3;font-family:var(--font);-webkit-font-sm
 /* ═══════════════════════════════════════════════
    CONFIG
 ═══════════════════════════════════════════════ */
-// Ganti dengan URL Apps Script yang sudah di-deploy
-const API_URL = 'GANTI_DENGAN_URL_APPS_SCRIPT';
-const DEMO_MODE = true; // Set false jika sudah pasang API_URL
+const SUPABASE_URL = 'https://kdgvzxygpeahttziwssz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtkZ3Z6eHlncGVhaHR0eml3c3N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2MTg3NjgsImV4cCI6MjA5NjE5NDc2OH0.JyYukac8O7mJrBlhO43x5EiYzfs9qZwlw_DpR3OjHZs';
+const API_URL = '';
+const DEMO_MODE = false;
 
 /* ═══════════════════════════════════════════════
    STATE
@@ -615,6 +614,7 @@ let SESSION = null; // {id, nama, hp}
 let ORDER_JENIS = 'cuci_kering', ORDER_HARGA = 7000;
 let CURRENT_ORDER = null; // order yang sedang dilihat detail
 let PREV_PAGE = 'pg-home';
+let ORDER_SUBMITTING = false;
 
 /* ═══════════════════════════════════════════════
    LOCAL STORAGE (demo mode)
@@ -630,6 +630,13 @@ function genOrdId(){ const o=getOrders(); return 'LD-'+String(o.length+1).padSta
 function hashSimple(s){
   let h=0;for(let i=0;i<s.length;i++){h=(Math.imul(31,h)+s.charCodeAt(i))|0}
   return Math.abs(h).toString(16);
+}
+
+function nowStr(){
+  const d=new Date();
+  const tgl=d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+  const jam=d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+  return {tgl,jam};
 }
 
 /* ═══════════════════════════════════════════════
@@ -685,9 +692,9 @@ function demoCreateOrder({customerId,nama,hp,jenis,jenisLabel,hargaPerKg,beratEs
     id,customerId,nama,hp,jenis,jenisLabel,
     hargaPerKg:parseFloat(hargaPerKg),beratEst:parseFloat(beratEst),
     hargaEst,beratAktual:null,hargaFinal:null,
-    catatan:catatan||'',status:'masuk',tgl,jam,
+    catatan:catatan||'',status:'dibuat',tgl,jam,
     createdAt:new Date().toISOString(),
-    log:[{status:'masuk',tgl,jam}]
+    log:[{status:'dibuat',tgl,jam}]
   };
   const orders=getOrders();orders.push(order);saveOrders(orders);
   return{success:true,order};
@@ -705,6 +712,143 @@ function demoGetOrderById({id}){
   const o=getOrders().find(x=>x.id===id);
   if(!o) return{success:false,error:'Order tidak ditemukan.'};
   return{success:true,order:o};
+}
+
+function supabaseReady(){
+  return SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.includes('ISI_DENGAN');
+}
+
+async function supabaseFetch(path, options={}){
+  if(!supabaseReady()) throw new Error('Supabase anon key belum diisi.');
+  const headers={
+    apikey:SUPABASE_ANON_KEY,
+    Authorization:`Bearer ${SUPABASE_ANON_KEY}`,
+    'Content-Type':'application/json',
+    ...(options.headers||{})
+  };
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/${path}`,{...options,headers});
+  if(!res.ok) throw new Error(await res.text()||`Supabase error ${res.status}`);
+  if(res.status===204) return null;
+  const text=await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+function fromOrderRow(row){
+  return row?.data ? {...row.data,id:row.id,status:row.status,customerId:row.customer_id,createdAt:row.created_at} : row;
+}
+
+async function countRows(table){
+  const rows=await supabaseFetch(`${table}?select=id`);
+  return rows.length;
+}
+
+function isPickupExpired(order){
+  if(normalizeStatus(order.status)!=='diambil' || order.rating) return false;
+  const pickedAt=order.pickedAt ? new Date(order.pickedAt) : null;
+  if(!pickedAt || Number.isNaN(pickedAt.getTime())) return false;
+  return Date.now()-pickedAt.getTime() >= 2*24*60*60*1000;
+}
+
+async function saveOrderData(order){
+  await supabaseFetch(`orders?id=eq.${encodeURIComponent(order.id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({
+    status:order.status,
+    data:order
+  })});
+}
+
+async function maybeAutoComplete(order){
+  if(normalizeStatus(order.status)==='diambil' && !order.rating && !order.pickedAt){
+    const seeded={...order,pickedAt:new Date().toISOString()};
+    await saveOrderData(seeded);
+    return seeded;
+  }
+  if(!isPickupExpired(order)) return order;
+  const {tgl,jam}=nowStr();
+  const updated={...order,status:'selesai_final',completedAt:new Date().toISOString(),completionReason:'auto_no_rating'};
+  updated.log=[...(updated.log||[]),{status:'selesai_final',tgl,jam}];
+  await saveOrderData(updated);
+  return updated;
+}
+
+async function api(params){
+  if(DEMO_MODE) return demoApi(params);
+  try{
+    switch(params.action){
+      case 'register':{
+        const {nama,hp,password}=params;
+        if(!nama||!hp||!password) return{success:false,error:'Semua kolom wajib diisi.'};
+        const existing=await supabaseFetch(`customers?select=id&hp=eq.${encodeURIComponent(hp)}&limit=1`);
+        if(existing.length) return{success:false,error:'Nomor HP sudah terdaftar.'};
+        const id='CUS-'+String((await countRows('customers'))+1).padStart(4,'0');
+        await supabaseFetch('customers',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({
+          id,nama,hp,password:hashSimple(password),created_at:new Date().toISOString()
+        })});
+        return{success:true,customer:{id,nama,hp}};
+      }
+      case 'login':{
+        const {hp,password}=params;
+        if(!hp||!password) return{success:false,error:'HP dan password wajib diisi.'};
+        const rows=await supabaseFetch(`customers?select=*&hp=eq.${encodeURIComponent(hp)}&limit=1`);
+        const found=rows[0];
+        if(!found) return{success:false,error:'Nomor HP tidak terdaftar.'};
+        if(found.password!==hashSimple(password)) return{success:false,error:'Password salah.'};
+        return{success:true,customer:{id:found.id,nama:found.nama,hp:found.hp}};
+      }
+      case 'createOrder':{
+        const hargaEst=parseFloat(params.beratEst)*parseFloat(params.hargaPerKg);
+        const d=new Date();
+        const tgl=d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+        const jam=d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+        const id='LD-'+String((await countRows('orders'))+1).padStart(3,'0');
+        const order={
+          id,customerId:params.customerId,nama:params.nama,hp:params.hp,
+          jenis:params.jenis,jenisLabel:params.jenisLabel,
+          hargaPerKg:parseFloat(params.hargaPerKg),beratEst:parseFloat(params.beratEst),
+          hargaEst,beratAktual:null,hargaFinal:null,
+          catatan:params.catatan||'',status:'dibuat',tgl,jam,
+          createdAt:new Date().toISOString(),
+          log:[{status:'dibuat',tgl,jam}]
+        };
+        await supabaseFetch('orders',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({
+          id,customer_id:params.customerId||null,status:'dibuat',created_at:order.createdAt,data:order
+        })});
+        return{success:true,order};
+      }
+      case 'getOrders':{
+        let path='orders?select=*&order=created_at.desc';
+        if(params.customerId) path+=`&customer_id=eq.${encodeURIComponent(params.customerId)}`;
+        const rows=await supabaseFetch(path);
+        const orders=[];
+        for(const row of rows) orders.push(await maybeAutoComplete(fromOrderRow(row)));
+        return{success:true,orders:params.status?orders.filter(o=>normalizeStatus(o.status)===params.status):orders};
+      }
+      case 'getOrderById':{
+        const rows=await supabaseFetch(`orders?select=*&id=eq.${encodeURIComponent(params.id)}&limit=1`);
+        if(!rows.length) return{success:false,error:'Order tidak ditemukan.'};
+        return{success:true,order:await maybeAutoComplete(fromOrderRow(rows[0]))};
+      }
+      case 'finishOrderWithRating':{
+        const rows=await supabaseFetch(`orders?select=*&id=eq.${encodeURIComponent(params.id)}&limit=1`);
+        if(!rows.length) return{success:false,error:'Order tidak ditemukan.'};
+        const {tgl,jam}=nowStr();
+        const order=fromOrderRow(rows[0]);
+        const updated={
+          ...order,
+          status:'selesai_final',
+          rating:parseInt(params.rating),
+          review:params.review||'',
+          completedAt:new Date().toISOString(),
+          completionReason:'rating'
+        };
+        updated.log=[...(updated.log||[]),{status:'selesai_final',tgl,jam}];
+        await saveOrderData(updated);
+        return{success:true,order:updated};
+      }
+    }
+  }catch(e){
+    return{success:false,error:e.message||'Gagal terhubung ke Supabase.'};
+  }
+  return {success:false,error:'Action tidak dikenal'};
 }
 
 /* ═══════════════════════════════════════════════
@@ -744,19 +888,31 @@ function togglePass(id,btn){
 }
 
 const STATUS_META={
-  masuk:{label:'Baru Masuk',icon:'ti-inbox',cls:'masuk'},
+  dibuat:{label:'Pesanan Dibuat',icon:'ti-circle-plus',cls:'masuk'},
+  diterima:{label:'Pesanan Diterima',icon:'ti-inbox',cls:'masuk'},
+  masuk:{label:'Pesanan Diterima',icon:'ti-inbox',cls:'masuk'},
   cuci:{label:'Sedang Dicuci',icon:'ti-wash-machine',cls:'cuci'},
   gosok:{label:'Sedang Digosok',icon:'ti-ironing',cls:'gosok'},
+  siap_diambil:{label:'Siap Diambil',icon:'ti-shirt',cls:'selesai'},
   selesai:{label:'Siap Diambil',icon:'ti-shirt',cls:'selesai'},
   diambil:{label:'Sudah Diambil',icon:'ti-circle-check',cls:'diambil'},
+  selesai_final:{label:'Selesai',icon:'ti-rosette-discount-check',cls:'selesai'},
 };
 const FLOW_LIST=[
-  {s:'masuk',label:'Baru Masuk',icon:'ti-inbox'},
+  {s:'dibuat',label:'Pesanan Dibuat',icon:'ti-circle-plus'},
+  {s:'diterima',label:'Pesanan Diterima',icon:'ti-inbox'},
   {s:'cuci',label:'Sedang Dicuci',icon:'ti-wash-machine'},
   {s:'gosok',label:'Sedang Digosok',icon:'ti-ironing'},
-  {s:'selesai',label:'Siap Diambil',icon:'ti-shirt'},
+  {s:'siap_diambil',label:'Siap Diambil',icon:'ti-shirt'},
   {s:'diambil',label:'Sudah Diambil',icon:'ti-circle-check'},
+  {s:'selesai_final',label:'Selesai',icon:'ti-rosette-discount-check'},
 ];
+
+function normalizeStatus(status){
+  if(status==='masuk') return 'diterima';
+  if(status==='selesai') return 'siap_diambil';
+  return status;
+}
 
 function saveSession(c){ SESSION=c; localStorage.setItem('el_session',JSON.stringify(c)) }
 function loadSession(){ 
@@ -836,7 +992,7 @@ async function loadHome(){
   try{
     const res=await api({action:'getOrders',customerId:SESSION.id});
     const orders=res.orders||[];
-    document.getElementById('h-aktif').textContent=orders.filter(o=>o.status!=='diambil').length;
+    document.getElementById('h-aktif').textContent=orders.filter(o=>normalizeStatus(o.status)!=='selesai_final').length;
     document.getElementById('h-total-order').textContent=orders.length;
     if(!orders.length){el.innerHTML='<div class="empty"><i class="ti ti-wash-machine" style="font-size:28px;display:block;margin-bottom:10px"></i>Belum ada pesanan</div>';return;}
     el.innerHTML=orders.slice(0,6).map(o=>renderItem(o)).join('');
@@ -844,7 +1000,8 @@ async function loadHome(){
 }
 
 function renderItem(o){
-  const m=STATUS_META[o.status]||STATUS_META.masuk;
+  const status=normalizeStatus(o.status);
+  const m=STATUS_META[status]||STATUS_META.diterima;
   return `<div class="trx-item" onclick="bukaDetail('${o.id}')">
     <div class="trx-icon ${m.cls}"><i class="ti ${m.icon}"></i></div>
     <div class="trx-meta">
@@ -930,6 +1087,8 @@ function goOrderStep2(){
 }
 
 async function simpanOrder(){
+  if(ORDER_SUBMITTING) return;
+  ORDER_SUBMITTING = true;
   const btn=document.getElementById('o-btnSimpan');
   btn.disabled=true;btn.textContent='Menyimpan...';
   const namaL={cuci_kering:'Cuci + Kering',cuci_setrika:'Cuci + Setrika',setrika:'Setrika Saja',ekspres:'Ekspres'};
@@ -960,6 +1119,7 @@ async function simpanOrder(){
       document.getElementById('msg-order2').innerHTML=`<div class="alert-box alert-err">${res.error}</div>`;
     }
   } catch(e){ document.getElementById('msg-order2').innerHTML='<div class="alert-box alert-err">Gagal menyimpan. Coba lagi.</div>'; }
+  ORDER_SUBMITTING = false;
   btn.disabled=false;btn.innerHTML='<i class="ti ti-check"></i> Konfirmasi Order';
 }
 
@@ -1002,11 +1162,12 @@ async function bukaDetail(id){
 }
 
 function renderDetail(o){
-  const m=STATUS_META[o.status]||STATUS_META.masuk;
-  const curIdx=FLOW_LIST.findIndex(f=>f.s===o.status);
+  const status=normalizeStatus(o.status);
+  const m=STATUS_META[status]||STATUS_META.diterima;
+  const curIdx=FLOW_LIST.findIndex(f=>f.s===status);
   const flowHTML=FLOW_LIST.map((f,i)=>{
     const cls=i<curIdx?'done':i===curIdx?'active':'';
-    const sub=o.log?.find(l=>l.status===f.s);
+    const sub=o.log?.find(l=>normalizeStatus(l.status)===f.s);
     return `<div class="flow-step">
       <div class="flow-dot ${cls}"><i class="ti ${f.icon}" style="font-size:11px"></i></div>
       <div class="flow-info">
@@ -1042,8 +1203,46 @@ function renderDetail(o){
       <div style="font-size:10px;font-weight:800;color:#9BADC0;text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">Progress Cucian</div>
       ${flowHTML}
     </div>
+    ${status==='diambil' && !o.rating ? `
+    <div style="background:#fff;border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:var(--sh)">
+      <div style="font-size:10px;font-weight:800;color:#9BADC0;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Beri Rating</div>
+      <select id="rating-${o.id}" style="width:100%;border:2px solid #EEF2F6;border-radius:12px;padding:12px;font-family:var(--font);font-weight:700;margin-bottom:10px;background:#fff">
+        <option value="5">★★★★★ Sangat puas</option>
+        <option value="4">★★★★ Puas</option>
+        <option value="3">★★★ Cukup</option>
+        <option value="2">★★ Kurang</option>
+        <option value="1">★ Buruk</option>
+      </select>
+      <textarea id="review-${o.id}" placeholder="Tulis penilaian..." style="width:100%;min-height:72px;border:2px solid #EEF2F6;border-radius:12px;padding:12px;font-family:var(--font);font-weight:600;resize:vertical;margin-bottom:10px"></textarea>
+      <button class="cta-main" onclick="kirimRating('${o.id}')"><i class="ti ti-star"></i> Kirim Rating & Selesaikan</button>
+      <div style="font-size:11px;color:#9BADC0;font-weight:600;line-height:1.5;margin-top:8px">Jika tidak diberi rating dalam 2 hari setelah diambil, pesanan otomatis selesai.</div>
+    </div>` : ''}
+    ${o.rating ? `
+    <div style="background:#fff;border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:var(--sh)">
+      <div style="font-size:10px;font-weight:800;color:#9BADC0;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Rating</div>
+      <div style="font-size:18px;color:#E8B922;margin-bottom:6px">${'★'.repeat(o.rating)}${'☆'.repeat(5-o.rating)}</div>
+      ${o.review?`<div style="font-size:13px;font-weight:600;color:#1a1a1a;line-height:1.5">${o.review}</div>`:''}
+    </div>` : ''}
     <button class="cta-main" onclick="cetakStruk('current')"><i class="ti ti-printer"></i> Cetak Struk</button>
   `;
+}
+
+async function kirimRating(id){
+  const rating=parseInt(document.getElementById('rating-'+id)?.value||'5');
+  const review=document.getElementById('review-'+id)?.value.trim()||'';
+  loading('Menyimpan rating...');
+  try{
+    const res=await api({action:'finishOrderWithRating',id,rating,review});
+    if(res.success){
+      CURRENT_ORDER=res.order;
+      document.getElementById('detail-content').innerHTML=renderDetail(res.order);
+    }else{
+      alert(res.error||'Gagal menyimpan rating.');
+    }
+  }catch(e){
+    alert('Gagal menyimpan rating.');
+  }
+  unloading();
 }
 
 /* ═══════════════════════════════════════════════
@@ -1076,7 +1275,7 @@ function lacakRealtime(val){
 function cetakStruk(mode){
   const o = mode==='new' ? CURRENT_ORDER : CURRENT_ORDER;
   if(!o){alert('Data order tidak tersedia.');return;}
-  const m=STATUS_META[o.status]||STATUS_META.masuk;
+  const m=STATUS_META[normalizeStatus(o.status)]||STATUS_META.diterima;
   const struktHTML=`
     <div class="struk-wrap">
       <div class="struk-header">

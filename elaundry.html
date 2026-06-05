@@ -256,8 +256,11 @@ html,body{
 }
 .btn-action:active{opacity:.7}
 .btn-cuci{background:#FFF8E6;border-color:#F0D899;color:#9B7200}
+.btn-diterima{background:#E6F8FC;border-color:#9ADCEA;color:#007C99}
 .btn-gosok{background:#FEF0E6;border-color:#F0C8A0;color:#C05A10}
+.btn-siap_diambil{background:#E6FAF0;border-color:#9FE1CB;color:#0F7A34}
 .btn-selesai{background:#E6FAF0;border-color:#9FE1CB;color:#0F7A34}
+.btn-diambil{background:#F2F4F6;border-color:#D0D8E0;color:#7890A0}
 .btn-ambil{background:#F2F4F6;border-color:#D0D8E0;color:#7890A0}
 
 /* ── SUMMARY CARDS ── */
@@ -474,11 +477,13 @@ html,body{
     <div class="filter-row">
       <select id="filterStatus" onchange="loadRiwayat()">
         <option value="">Semua status</option>
-        <option value="masuk">Baru Masuk</option>
+        <option value="dibuat">Pesanan Dibuat</option>
+        <option value="diterima">Pesanan Diterima</option>
         <option value="cuci">Sedang Dicuci</option>
         <option value="gosok">Sedang Digosok</option>
-        <option value="selesai">Siap Diambil</option>
+        <option value="siap_diambil">Siap Diambil</option>
         <option value="diambil">Sudah Diambil</option>
+        <option value="selesai_final">Selesai</option>
       </select>
     </div>
     <div class="summary-cards" style="margin-bottom:14px">
@@ -507,10 +512,12 @@ html,body{
   <!-- Filter tab admin -->
   <div style="display:flex;gap:6px;padding:10px 14px 4px;flex-shrink:0;overflow-x:auto">
     <button class="filter-tab on" data-s="" onclick="setAdminFilter(this,'')">Semua</button>
-    <button class="filter-tab" data-s="masuk" onclick="setAdminFilter(this,'masuk')">Baru Masuk</button>
+    <button class="filter-tab" data-s="dibuat" onclick="setAdminFilter(this,'dibuat')">Dibuat</button>
+    <button class="filter-tab" data-s="diterima" onclick="setAdminFilter(this,'diterima')">Diterima</button>
     <button class="filter-tab" data-s="cuci" onclick="setAdminFilter(this,'cuci')">Dicuci</button>
     <button class="filter-tab" data-s="gosok" onclick="setAdminFilter(this,'gosok')">Digosok</button>
-    <button class="filter-tab" data-s="selesai" onclick="setAdminFilter(this,'selesai')">Selesai</button>
+    <button class="filter-tab" data-s="siap_diambil" onclick="setAdminFilter(this,'siap_diambil')">Siap</button>
+    <button class="filter-tab" data-s="diambil" onclick="setAdminFilter(this,'diambil')">Diambil</button>
   </div>
   <div class="form-body" style="padding:10px 14px" id="admin-list"><div class="spin">Memuat...</div></div>
   <div class="bottom-nav">
@@ -531,6 +538,113 @@ html,body{
 </style>
 
 <script>
+const SUPABASE_URL = 'https://kdgvzxygpeahttziwssz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtkZ3Z6eHlncGVhaHR0eml3c3N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2MTg3NjgsImV4cCI6MjA5NjE5NDc2OH0.JyYukac8O7mJrBlhO43x5EiYzfs9qZwlw_DpR3OjHZs';
+let ORDERS_CACHE = [];
+let ORDER_SUBMITTING = false;
+
+function supabaseReady(){
+  return SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.includes('ISI_DENGAN');
+}
+
+async function supabaseFetch(path, options={}){
+  if(!supabaseReady()) throw new Error('Supabase anon key belum diisi.');
+  const headers={
+    apikey:SUPABASE_ANON_KEY,
+    Authorization:`Bearer ${SUPABASE_ANON_KEY}`,
+    'Content-Type':'application/json',
+    ...(options.headers||{})
+  };
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/${path}`,{...options,headers});
+  if(!res.ok) throw new Error(await res.text()||`Supabase error ${res.status}`);
+  if(res.status===204) return null;
+  const text=await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+function fromOrderRow(row){
+  return row?.data ? {...row.data,id:row.id,status:row.status,customerId:row.customer_id,createdAt:row.created_at} : row;
+}
+
+function isPickupExpired(order){
+  if(normalizeStatus(order.status)!=='diambil' || order.rating) return false;
+  const pickedAt=order.pickedAt ? new Date(order.pickedAt) : null;
+  if(!pickedAt || Number.isNaN(pickedAt.getTime())) return false;
+  return Date.now()-pickedAt.getTime() >= 2*24*60*60*1000;
+}
+
+async function saveOrderData(order){
+  await supabaseFetch(`orders?id=eq.${encodeURIComponent(order.id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({
+    status:order.status,
+    data:order
+  })});
+}
+
+async function maybeAutoComplete(order){
+  if(normalizeStatus(order.status)==='diambil' && !order.rating && !order.pickedAt){
+    const seeded={...order,pickedAt:new Date().toISOString()};
+    await saveOrderData(seeded);
+    return seeded;
+  }
+  if(!isPickupExpired(order)) return order;
+  const {tgl,jam}=nowStr();
+  const updated={...order,status:'selesai_final',completedAt:new Date().toISOString(),completionReason:'auto_no_rating'};
+  updated.log=[...(updated.log||[]),{status:'selesai_final',tgl,jam}];
+  await saveOrderData(updated);
+  return updated;
+}
+
+async function fetchOrders(){
+  if(!supabaseReady()) return getOrders();
+  const rows=await supabaseFetch('orders?select=*&order=created_at.desc');
+  ORDERS_CACHE=[];
+  for(const row of rows) ORDERS_CACHE.push(await maybeAutoComplete(fromOrderRow(row)));
+  return ORDERS_CACHE;
+}
+
+async function countOrders(){
+  if(!supabaseReady()) return getOrders().length;
+  const rows=await supabaseFetch('orders?select=id');
+  return rows.length;
+}
+
+async function createOrder(order){
+  if(!supabaseReady()){
+    const orders=getOrders();
+    orders.push(order);
+    saveOrders(orders);
+    ORDERS_CACHE=orders;
+    return order;
+  }
+  await supabaseFetch('orders',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({
+    id:order.id,
+    customer_id:order.customerId||null,
+    status:order.status,
+    created_at:order.createdAt,
+    data:order
+  })});
+  ORDERS_CACHE.unshift(order);
+  return order;
+}
+
+async function updateOrder(order){
+  if(!supabaseReady()){
+    const orders=getOrders();
+    const idx=orders.findIndex(o=>o.id===order.id);
+    if(idx>=0) orders[idx]=order;
+    saveOrders(orders);
+    ORDERS_CACHE=orders;
+    return order;
+  }
+  const rows=await supabaseFetch(`orders?id=eq.${encodeURIComponent(order.id)}`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({
+    status:order.status,
+    data:order
+  })});
+  if(!rows || rows.length!==1) throw new Error('Order lama tidak ditemukan.');
+  ORDERS_CACHE=ORDERS_CACHE.map(o=>o.id===order.id?order:o);
+  return order;
+}
+
 /* ══════════════════════════════════════
    DATA STORE — localStorage sebagai "DB"
 ══════════════════════════════════════ */
@@ -557,16 +671,32 @@ function nowStr(){
 
 /* ══ STATUS META ══ */
 const STATUS_META={
-  masuk:{label:'Baru Masuk',icon:'ti-inbox',cls:'masuk',next:'cuci',nextLabel:'Mulai Cuci'},
+  dibuat:{label:'Pesanan Dibuat',icon:'ti-circle-plus',cls:'masuk',next:'diterima',nextLabel:'Terima Pesanan'},
+  diterima:{label:'Pesanan Diterima',icon:'ti-inbox',cls:'masuk',next:'cuci',nextLabel:'Mulai Cuci'},
+  masuk:{label:'Pesanan Diterima',icon:'ti-inbox',cls:'masuk',next:'cuci',nextLabel:'Mulai Cuci'},
   cuci:{label:'Sedang Dicuci',icon:'ti-wash-machine',cls:'cuci',next:'gosok',nextLabel:'Lanjut Gosok'},
-  gosok:{label:'Sedang Digosok',icon:'ti-ironing',cls:'gosok',next:'selesai',nextLabel:'Tandai Selesai'},
+  gosok:{label:'Sedang Digosok',icon:'ti-ironing',cls:'gosok',next:'siap_diambil',nextLabel:'Siap Diambil'},
+  siap_diambil:{label:'Siap Diambil',icon:'ti-shirt',cls:'selesai',next:'diambil',nextLabel:'Sudah Diambil'},
   selesai:{label:'Siap Diambil',icon:'ti-shirt',cls:'selesai',next:'diambil',nextLabel:'Sudah Diambil'},
+  selesai_final:{label:'Selesai',icon:'ti-rosette-discount-check',cls:'selesai',next:null,nextLabel:null},
   diambil:{label:'Sudah Diambil',icon:'ti-circle-check',cls:'diambil',next:null,nextLabel:null},
 };
 
-const STATUS_FLOW=['masuk','cuci','gosok','selesai','diambil'];
-const STATUS_FLOW_LABEL=['Baru Masuk','Sedang Dicuci','Sedang Digosok','Siap Diambil','Sudah Diambil'];
-const STATUS_FLOW_ICON=['ti-inbox','ti-wash-machine','ti-ironing','ti-shirt','ti-circle-check'];
+const STATUS_FLOW=['dibuat','diterima','cuci','gosok','siap_diambil','diambil','selesai_final'];
+const STATUS_FLOW_LABEL=['Pesanan Dibuat','Pesanan Diterima','Sedang Dicuci','Sedang Digosok','Siap Diambil','Sudah Diambil','Selesai'];
+const STATUS_FLOW_ICON=['ti-circle-plus','ti-inbox','ti-wash-machine','ti-ironing','ti-shirt','ti-circle-check','ti-rosette-discount-check'];
+
+function normalizeStatus(status){
+  if(status==='masuk') return 'diterima';
+  if(status==='selesai') return 'siap_diambil';
+  return status;
+}
+
+function ratingSummary(o){
+  if(o.rating) return `${'★'.repeat(o.rating)}${'☆'.repeat(5-o.rating)}${o.review?` · ${o.review}`:''}`;
+  if(o.completionReason==='auto_no_rating') return 'Selesai otomatis tanpa rating';
+  return '';
+}
 
 /* ══ NAVIGASI ══ */
 let ADMIN_FILTER='';
@@ -591,13 +721,21 @@ function goTab(t){
 /* ══════════════════════════════════════
    HOME
 ══════════════════════════════════════ */
-function loadHome(){
-  const orders=getOrders();
+async function loadHome(){
+  const el=document.getElementById('home-trx');
+  let orders=[];
+  try{
+    orders=await fetchOrders();
+  }catch(e){
+    el.innerHTML='<div class="empty">Gagal memuat data Supabase. Pastikan schema SQL sudah dijalankan.</div>';
+    document.getElementById('home-total').textContent=rp(0);
+    return;
+  }
   const bulanIni=new Date().getMonth();
   const tahunIni=new Date().getFullYear();
   const pendapatan=orders
     .filter(o=>{
-      if(o.status!=='diambil') return false;
+      if(!['diambil','selesai_final'].includes(normalizeStatus(o.status))) return false;
       const d=new Date(o.createdAt);
       return d.getMonth()===bulanIni&&d.getFullYear()===tahunIni;
     })
@@ -605,16 +743,16 @@ function loadHome(){
   document.getElementById('home-total').textContent=rp(pendapatan);
 
   // Badge admin — pesanan aktif (belum diambil)
-  const aktif=orders.filter(o=>o.status!=='diambil');
+  const aktif=orders.filter(o=>normalizeStatus(o.status)!=='selesai_final');
   const badge=document.getElementById('admin-badge');
   if(aktif.length){badge.textContent=aktif.length;badge.style.display='flex';}
   else{badge.style.display='none';}
 
-  const el=document.getElementById('home-trx');
   if(!orders.length){el.innerHTML='<div class="empty"><i class="ti ti-wash-machine" style="font-size:28px;display:block;margin-bottom:10px"></i>Belum ada pesanan</div>';return;}
   const sorted=[...orders].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   el.innerHTML=sorted.slice(0,8).map(o=>{
-    const m=STATUS_META[o.status]||STATUS_META.masuk;
+    const status=normalizeStatus(o.status);
+    const m=STATUS_META[status]||STATUS_META.diterima;
     return `<div class="trx-item" onclick="bukaDetail('${o.id}')">
       <div class="trx-icon ${m.cls}"><i class="ti ${m.icon}"></i></div>
       <div class="trx-meta">
@@ -706,11 +844,14 @@ function goOrderStep2(){
   setOrderStep(2);
 }
 
-function simpanOrder(){
+async function simpanOrder(){
+  if(ORDER_SUBMITTING) return;
+  ORDER_SUBMITTING = true;
   const btn=document.getElementById('btnSimpan');
   btn.disabled=true;btn.textContent='Menyimpan...';
+  try{
   const {tgl,jam}=nowStr();
-  const id=genId();
+  const id='LD-'+String((await countOrders())+1).padStart(3,'0');
   const berat=parseFloat(document.getElementById('inpBerat').value)||1;
   const est=berat*ORDER_HARGA;
   const namaLayanan={cuci_kering:'Cuci + Kering',cuci_setrika:'Cuci + Setrika',setrika:'Setrika Saja',ekspres:'Ekspres'};
@@ -721,12 +862,10 @@ function simpanOrder(){
     hargaPerKg:ORDER_HARGA, beratEst:berat, hargaEst:est,
     beratAktual:null, hargaFinal:null,
     catatan:document.getElementById('inpCatatan').value,
-    status:'masuk', tgl, jam, createdAt:new Date().toISOString(),
-    log:[{status:'masuk',tgl,jam}]
+    status:'dibuat', tgl, jam, createdAt:new Date().toISOString(),
+    log:[{status:'dibuat',tgl,jam}]
   };
-  const orders=getOrders();
-  orders.push(order);
-  saveOrders(orders);
+  await createOrder(order);
 
   document.getElementById('rcpt-done').innerHTML=`
     <div class="receipt-row"><span class="rl">ID Order</span><span class="rr" style="font-family:var(--font-mono)">${id}</span></div>
@@ -737,6 +876,10 @@ function simpanOrder(){
     <div class="receipt-row total"><span class="rl">Est. biaya</span><span class="rr">${rp(est)}</span></div>
   `;
   setOrderStep(3);
+  }catch(e){
+    document.getElementById('msg1').innerHTML='<div class="alert-box alert-err">Gagal menyimpan ke Supabase. Pastikan schema SQL sudah dijalankan.</div>';
+  }
+  ORDER_SUBMITTING = false;
   btn.disabled=false;btn.innerHTML='<i class="ti ti-check"></i> Simpan Order';
 }
 
@@ -763,25 +906,32 @@ function initLacak(){
 let lacakTimer=null;
 function lacakRealtime(val){
   clearTimeout(lacakTimer);
-  lacakTimer=setTimeout(()=>{
+  lacakTimer=setTimeout(async ()=>{
     const q=val.trim().toUpperCase();
     if(!q){document.getElementById('lacak-result').innerHTML='';return;}
-    const orders=getOrders();
-    const found=orders.filter(o=>o.id.includes(q)||o.nama.toLowerCase().includes(q.toLowerCase()));
     const el=document.getElementById('lacak-result');
+    let orders=[];
+    try{
+      orders=ORDERS_CACHE.length?ORDERS_CACHE:await fetchOrders();
+    }catch(e){
+      el.innerHTML='<div class="empty">Gagal memuat data Supabase. Pastikan schema SQL sudah dijalankan.</div>';
+      return;
+    }
+    const found=orders.filter(o=>o.id.includes(q)||o.nama.toLowerCase().includes(q.toLowerCase()));
     if(!found.length){el.innerHTML='<div class="empty">Pesanan tidak ditemukan</div>';return;}
     el.innerHTML=found.map(o=>renderOrderCard(o)).join('');
   },300);
 }
 
 function renderOrderCard(o){
-  const m=STATUS_META[o.status]||STATUS_META.masuk;
-  const curIdx=STATUS_FLOW.indexOf(o.status);
+  const status=normalizeStatus(o.status);
+  const m=STATUS_META[status]||STATUS_META.diterima;
+  const curIdx=STATUS_FLOW.indexOf(status);
   const flowHTML=STATUS_FLOW.map((s,i)=>{
     const cls=i<curIdx?'done':i===curIdx?'active':'';
     const icon=STATUS_FLOW_ICON[i];
     const label=STATUS_FLOW_LABEL[i];
-    const sub=o.log?.find(l=>l.status===s);
+    const sub=o.log?.find(l=>normalizeStatus(l.status)===s);
     return `<div class="flow-step">
       <div class="flow-dot ${cls}"><i class="ti ${icon}" style="font-size:12px"></i></div>
       <div class="flow-info">
@@ -806,6 +956,7 @@ function renderOrderCard(o){
       o.beratAktual!=null?['Berat aktual',o.beratAktual+' kg']:['Berat est.',o.beratEst+' kg'],
       ['Est. biaya',rp(o.hargaEst)],
       o.hargaFinal!=null?['Biaya final',rp(o.hargaFinal)]:null,
+      ratingSummary(o)?['Rating',ratingSummary(o)]:null,
     ].filter(Boolean).map(([l,v])=>`
       <div class="confirm-row"><span class="cl">${l}</span><span class="cr">${v}</span></div>
     `).join('')}
@@ -818,27 +969,37 @@ function renderOrderCard(o){
 /* ══════════════════════════════════════
    RIWAYAT
 ══════════════════════════════════════ */
-function loadRiwayat(){
+async function loadRiwayat(){
   const filter=document.getElementById('filterStatus').value;
-  const orders=getOrders();
-  const filtered=filter?orders.filter(o=>o.status===filter):orders;
+  const el=document.getElementById('rw-list');
+  let orders=[];
+  try{
+    orders=await fetchOrders();
+  }catch(e){
+    document.getElementById('rw-count').textContent='0x';
+    document.getElementById('rw-total').textContent=rp(0);
+    el.innerHTML='<div class="empty">Gagal memuat data Supabase. Pastikan schema SQL sudah dijalankan.</div>';
+    return;
+  }
+  const filtered=filter?orders.filter(o=>normalizeStatus(o.status)===filter):orders;
   const sorted=[...filtered].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
 
-  const totalPendapatan=orders.filter(o=>o.status==='diambil')
+  const totalPendapatan=orders.filter(o=>['diambil','selesai_final'].includes(normalizeStatus(o.status)))
     .reduce((s,o)=>s+(o.hargaFinal||o.hargaEst||0),0);
 
   document.getElementById('rw-count').textContent=sorted.length+'x';
   document.getElementById('rw-total').textContent=rp(totalPendapatan);
 
-  const el=document.getElementById('rw-list');
   if(!sorted.length){el.innerHTML='<div class="empty">Tidak ada pesanan</div>';return;}
   el.innerHTML=sorted.map(o=>{
-    const m=STATUS_META[o.status]||STATUS_META.masuk;
+    const status=normalizeStatus(o.status);
+    const m=STATUS_META[status]||STATUS_META.diterima;
     return `<div class="trx-item" onclick="bukaDetail('${o.id}')">
       <div class="trx-icon ${m.cls}"><i class="ti ${m.icon}"></i></div>
       <div class="trx-meta">
         <div class="trx-name">${o.nama}</div>
         <div class="trx-time">${o.tgl} · ${o.id} · ${o.jenisLabel}</div>
+        ${ratingSummary(o)?`<div class="trx-time" style="color:#E8B922">${ratingSummary(o)}</div>`:''}
       </div>
       <div class="trx-right">
         <div class="trx-amount">${rp(o.hargaFinal||o.hargaEst)}</div>
@@ -858,17 +1019,24 @@ function setAdminFilter(el,s){
   loadAdmin();
 }
 
-function loadAdmin(){
-  let orders=getOrders().filter(o=>o.status!=='diambil');
-  if(ADMIN_FILTER) orders=orders.filter(o=>o.status===ADMIN_FILTER);
-  orders.sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));
+async function loadAdmin(){
   const el=document.getElementById('admin-list');
+  let orders=[];
+  try{
+    orders=(await fetchOrders()).filter(o=>normalizeStatus(o.status)!=='selesai_final');
+  }catch(e){
+    el.innerHTML='<div class="empty">Gagal memuat data Supabase. Pastikan schema SQL sudah dijalankan.</div>';
+    return;
+  }
+  if(ADMIN_FILTER) orders=orders.filter(o=>normalizeStatus(o.status)===ADMIN_FILTER);
+  orders.sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));
   if(!orders.length){
     el.innerHTML='<div class="empty"><i class="ti ti-circle-check" style="font-size:28px;display:block;margin-bottom:10px"></i>Tidak ada pesanan aktif</div>';
     return;
   }
   el.innerHTML=orders.map(o=>{
-    const m=STATUS_META[o.status]||STATUS_META.masuk;
+    const status=normalizeStatus(o.status);
+    const m=STATUS_META[status]||STATUS_META.diterima;
     const nextStatus=m.next;
     const nextLabel=m.nextLabel;
     const btnNext=nextStatus?`<button class="btn-action btn-${nextStatus}" onclick="ubahStatus('${o.id}','${nextStatus}')"><i class="ti ti-arrow-right"></i> ${nextLabel}</button>`:'';
@@ -885,8 +1053,9 @@ function loadAdmin(){
         <span style="font-size:11px;font-weight:600;color:#9BADC0">${o.jenisLabel} · ${o.beratEst} kg est.</span>
       </div>
       ${o.catatan?`<div class="pend-note">"${o.catatan}"</div>`:''}
+      ${ratingSummary(o)?`<div class="pend-note" style="color:#9B7200;background:#FFF8E6;border-left-color:#E8B922">${ratingSummary(o)}</div>`:''}
       <!-- Input berat aktual jika status = masuk -->
-      ${o.status==='masuk'?`
+      ${['dibuat','diterima'].includes(status)?`
       <div style="margin-top:10px;background:#F5F7FA;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px">
         <span style="font-size:12px;font-weight:700;color:#9BADC0">Berat aktual:</span>
         <div class="berat-row" style="flex:1;border:1.5px solid #DDE4EC;border-radius:10px;overflow:hidden">
@@ -913,7 +1082,7 @@ function ubahBeratAdmin(id,delta){
 }
 
 function previewHarga(id){
-  const orders=getOrders();
+  const orders=ORDERS_CACHE.length?ORDERS_CACHE:getOrders();
   const o=orders.find(x=>x.id===id);
   if(!o) return;
   const berat=parseFloat(document.getElementById('berat-'+id).value)||o.beratEst;
@@ -922,16 +1091,24 @@ function previewHarga(id){
   if(el) el.textContent=rp(harga);
 }
 
-function ubahStatus(id,newStatus){
+async function ubahStatus(id,newStatus){
   const card=document.getElementById('pc-'+id);
   if(card){card.style.opacity='.4';card.style.pointerEvents='none';}
-  const orders=getOrders();
+  let orders=[];
+  try{
+    orders=ORDERS_CACHE.length?ORDERS_CACHE:await fetchOrders();
+  }catch(e){
+    if(card){card.style.opacity='1';card.style.pointerEvents='';}
+    alert('Gagal memuat data Supabase. Pastikan schema SQL sudah dijalankan.');
+    return;
+  }
   const idx=orders.findIndex(o=>o.id===id);
   if(idx<0){if(card){card.style.opacity='1';card.style.pointerEvents='';}return;}
+  const oldStatus=normalizeStatus(orders[idx].status);
   const {tgl,jam}=nowStr();
 
   // Jika masuk → cuci: simpan berat aktual & harga final
-  if(orders[idx].status==='masuk'){
+  if(newStatus==='cuci' && ['dibuat','diterima'].includes(oldStatus)){
     const inp=document.getElementById('berat-'+id);
     if(inp){
       const ba=parseFloat(inp.value)||orders[idx].beratEst;
@@ -941,17 +1118,24 @@ function ubahStatus(id,newStatus){
   }
 
   orders[idx].status=newStatus;
+  if(newStatus==='diambil') orders[idx].pickedAt=new Date().toISOString();
   if(!orders[idx].log) orders[idx].log=[];
   orders[idx].log.push({status:newStatus,tgl,jam});
-  saveOrders(orders);
+  try{
+    await updateOrder(orders[idx]);
+  }catch(e){
+    if(card){card.style.opacity='1';card.style.pointerEvents='';}
+    alert('Gagal menyimpan status ke Supabase. Pastikan schema SQL sudah dijalankan.');
+    return;
+  }
   setTimeout(()=>loadAdmin(),300);
 }
 
 /* ══════════════════════════════════════
    DETAIL ORDER (dari home/riwayat)
 ══════════════════════════════════════ */
-function bukaDetail(id){
-  const orders=getOrders();
+async function bukaDetail(id){
+  const orders=ORDERS_CACHE.length?ORDERS_CACHE:await fetchOrders();
   const o=orders.find(x=>x.id===id);
   if(!o) return;
   // Buka halaman lacak dan isi ID
@@ -965,6 +1149,7 @@ function bukaDetail(id){
 ══════════════════════════════════════ */
 // Seed data demo jika kosong
 (function seedDemo(){
+  if(supabaseReady()) return;
   const orders=getOrders();
   if(orders.length) return;
   const demo=[
