@@ -330,7 +330,7 @@ html,body{
     <button class="nav-item on" onclick="goTab('home')"><i class="ti ti-home"></i><span>Beranda</span></button>
     <button class="nav-item" onclick="goPage('pg-order');initOrder();setNavActive(1)"><i class="ti ti-plus-circle"></i><span>Order</span></button>
     <button class="nav-item" onclick="goTab('riwayat');setNavActive(2)"><i class="ti ti-list"></i><span>Riwayat</span></button>
-    <button class="nav-item" id="nav-admin-btn" onclick="goTab('admin');setNavActive(3)"><i class="ti ti-shield-check"></i><span>Admin</span><span class="nav-badge" id="admin-badge" style="display:none"></span></button>
+    <button class="nav-item" id="nav-admin-btn" onclick="goTab('admin')"><i class="ti ti-shield-check"></i><span>Admin</span><span class="nav-badge" id="admin-badge" style="display:none"></span></button>
   </div>
 </div>
 
@@ -496,7 +496,7 @@ html,body{
     <button class="nav-item" onclick="goTab('home');setNavActive(0)"><i class="ti ti-home"></i><span>Beranda</span></button>
     <button class="nav-item" onclick="goPage('pg-order');initOrder();setNavActive(1)"><i class="ti ti-plus-circle"></i><span>Order</span></button>
     <button class="nav-item on" onclick="goTab('riwayat');setNavActive(2)"><i class="ti ti-list"></i><span>Riwayat</span></button>
-    <button class="nav-item" onclick="goTab('admin');setNavActive(3)"><i class="ti ti-shield-check"></i><span>Admin</span></button>
+    <button class="nav-item" onclick="goTab('admin')"><i class="ti ti-shield-check"></i><span>Admin</span></button>
   </div>
 </div>
 
@@ -507,7 +507,8 @@ html,body{
   <div class="page-header">
     <button class="back-btn" onclick="goTab('home')"><i class="ti ti-arrow-left"></i></button>
     <div class="page-title">Kelola proses</div>
-    <button onclick="loadAdmin()" style="margin-left:auto;background:rgba(255,255,255,.2);border:none;border-radius:50%;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;flex-shrink:0"><i class="ti ti-refresh"></i></button>
+    <button onclick="logoutAdmin()" title="Keluar admin" style="margin-left:auto;background:rgba(255,255,255,.2);border:none;border-radius:50%;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;flex-shrink:0"><i class="ti ti-lock"></i></button>
+    <button onclick="loadAdmin()" style="background:rgba(255,255,255,.2);border:none;border-radius:50%;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;flex-shrink:0"><i class="ti ti-refresh"></i></button>
   </div>
   <!-- Filter tab admin -->
   <div style="display:flex;gap:6px;padding:10px 14px 4px;flex-shrink:0;overflow-x:auto">
@@ -524,7 +525,7 @@ html,body{
     <button class="nav-item" onclick="goTab('home');setNavActive(0)"><i class="ti ti-home"></i><span>Beranda</span></button>
     <button class="nav-item" onclick="goPage('pg-order');initOrder();setNavActive(1)"><i class="ti ti-plus-circle"></i><span>Order</span></button>
     <button class="nav-item" onclick="goTab('riwayat');setNavActive(2)"><i class="ti ti-list"></i><span>Riwayat</span></button>
-    <button class="nav-item on" onclick="goTab('admin');setNavActive(3)"><i class="ti ti-shield-check"></i><span>Admin</span></button>
+    <button class="nav-item on" onclick="goTab('admin')"><i class="ti ti-shield-check"></i><span>Admin</span></button>
   </div>
 </div>
 
@@ -542,6 +543,8 @@ const SUPABASE_URL = 'https://kdgvzxygpeahttziwssz.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtkZ3Z6eHlncGVhaHR0eml3c3N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2MTg3NjgsImV4cCI6MjA5NjE5NDc2OH0.JyYukac8O7mJrBlhO43x5EiYzfs9qZwlw_DpR3OjHZs';
 let ORDERS_CACHE = [];
 let ORDER_SUBMITTING = false;
+const ADMIN_PASSWORD = 'admin123';
+const ADMIN_SESSION_KEY = 'elaundry_admin_auth';
 
 function supabaseReady(){
   return SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.includes('ISI_DENGAN');
@@ -708,7 +711,24 @@ function goPage(id){
 function setNavActive(i){
   document.querySelectorAll('.bottom-nav .nav-item').forEach((b,j)=>b.classList.toggle('on',j===i));
 }
+function isAdminAuthed(){return sessionStorage.getItem(ADMIN_SESSION_KEY)==='1'}
+function requireAdminAuth(){
+  if(isAdminAuthed()) return true;
+  const pass=prompt('Masukkan password admin');
+  if(pass===ADMIN_PASSWORD){
+    sessionStorage.setItem(ADMIN_SESSION_KEY,'1');
+    return true;
+  }
+  if(pass!==null) alert('Password admin salah.');
+  setNavActive(0);
+  return false;
+}
+function logoutAdmin(){
+  sessionStorage.removeItem(ADMIN_SESSION_KEY);
+  goTab('home');
+}
 function goTab(t){
+  if(t==='admin' && !requireAdminAuth()) return;
   const map={home:'pg-home',riwayat:'pg-riwayat',admin:'pg-admin'};
   goPage(map[t]||'pg-home');
   if(t==='home') loadHome();
