@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>eLaundry</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+
+:root{
+  --gp:#00AED6;
+  --gp-dark:#0090B0;
+  --gp-light:#E6F8FC;
+  --gp-bg:#F0F5F9;
+  --font:'Plus Jakarta Sans',sans-serif;
+  --font-mono:'SF Mono','Courier New',monospace;
+  --radius-card:18px;
+  --shadow-card:0 2px 12px rgba(0,0,0,.07);
+}
+
+html,body{
+  height:100%;background:#CBD8E3;
+  font-family:var(--font);-webkit-font-smoothing:antialiased;
+}
+
+/* ── PHONE FRAME ── */
+.phone-frame{
+  background:#d8dfe6;border-radius:48px;padding:12px;
+  max-width:400px;width:100%;margin:24px auto;
+  box-shadow:0 24px 64px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.4);
+  border:1px solid rgba(255,255,255,.3);
+}
+.screen{
+  background:var(--gp-bg);border-radius:38px;overflow:hidden;
+  min-height:720px;max-height:88vh;display:flex;flex-direction:column;position:relative;
+}
+@media(max-width:480px){
+  html,body{background:var(--gp-bg)}
+  .phone-frame{border-radius:0;padding:0;margin:0;max-width:100%;box-shadow:none;border:none}
+  .screen{border-radius:0;min-height:100dvh;max-height:100dvh}
+}
+
+/* ── PAGES ── */
+.page{display:none;flex:1;flex-direction:column;overflow:hidden}
+.page.on{display:flex}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.page.on{animation:fadeUp .22s ease}
+
+/* ── HOME HEADER ── */
+.home-header{
+  background:linear-gradient(135deg,var(--gp) 0%,#0090B0 60%,#006E8A 100%);
+  padding:24px 20px 40px;position:relative;overflow:hidden;
+}
+.home-header::before{content:'';position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.07)}
+.home-header::after{content:'';position:absolute;bottom:-60px;left:20px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.05)}
+.home-greeting{font-size:12px;font-weight:600;color:rgba(255,255,255,.7);letter-spacing:.8px;text-transform:uppercase;margin-bottom:3px}
+.home-name{font-size:20px;font-weight:800;color:#fff;letter-spacing:-.3px;display:flex;align-items:center;gap:6px}
+.home-balance-label{font-size:11px;font-weight:600;color:rgba(255,255,255,.65);letter-spacing:.5px;text-transform:uppercase;margin-top:18px;margin-bottom:5px}
+.home-balance{font-size:32px;font-weight:800;color:#fff;letter-spacing:-1px}
+
+/* ── ACTION BUTTONS ── */
+.home-actions{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
+  padding:0 14px;margin-top:-24px;margin-bottom:8px;position:relative;z-index:2;
+}
+.action-btn{
+  background:#fff;border-radius:16px;padding:12px 6px 10px;
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  cursor:pointer;border:none;box-shadow:var(--shadow-card);
+  transition:transform .15s,box-shadow .15s;
+}
+.action-btn:active{transform:scale(.96);box-shadow:none}
+.action-icon{width:40px;height:40px;border-radius:12px;background:var(--gp-light);display:flex;align-items:center;justify-content:center;font-size:19px;color:var(--gp)}
+.action-label{font-size:10px;font-weight:700;color:#3a3a3a;text-align:center}
+
+/* ── SECTION TITLE ── */
+.section-title{font-size:11px;font-weight:700;color:#9BADC0;padding:12px 18px 6px;text-transform:uppercase;letter-spacing:.8px;flex-shrink:0}
+
+/* ── TRX LIST ── */
+.trx-list{flex:1;overflow-y:auto;padding:0 14px 8px}
+.trx-list::-webkit-scrollbar{width:0}
+.trx-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid rgba(0,0,0,.05);cursor:pointer}
+.trx-item:last-child{border-bottom:none}
+.trx-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.trx-icon.masuk{background:#E6F8FC;color:#00AED6}
+.trx-icon.cuci{background:#FFF8E6;color:#E8B922}
+.trx-icon.gosok{background:#FEF0E6;color:#E87722}
+.trx-icon.selesai{background:#E6FAF0;color:#1DB954}
+.trx-icon.diambil{background:#F2F4F6;color:#9BADC0}
+.trx-meta{flex:1;min-width:0}
+.trx-name{font-size:14px;font-weight:700;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trx-time{font-size:11px;font-weight:500;color:#9BADC0;margin-top:2px}
+.trx-right{text-align:right;flex-shrink:0}
+.trx-amount{font-size:14px;font-weight:700;color:#1a1a1a}
+.trx-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-top:4px;display:inline-block;letter-spacing:.2px}
+.trx-badge.masuk{background:#E6F8FC;color:#0090B0}
+.trx-badge.cuci{background:#FFF8E6;color:#9B7200}
+.trx-badge.gosok{background:#FEF0E6;color:#C05A10}
+.trx-badge.selesai{background:#E6FAF0;color:#0F7A34}
+.trx-badge.diambil{background:#F2F4F6;color:#7890A0}
+
+/* ── PAGE HEADER ── */
+.page-header{
+  background:linear-gradient(135deg,var(--gp) 0%,#0090B0 100%);
+  padding:18px 16px 22px;display:flex;align-items:center;gap:12px;flex-shrink:0;
+}
+.back-btn{
+  width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.2);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;border:none;color:#fff;font-size:17px;transition:background .15s;flex-shrink:0;
+}
+.back-btn:active{background:rgba(255,255,255,.35)}
+.page-title{font-size:17px;font-weight:800;color:#fff;letter-spacing:-.2px}
+
+/* ── FORM ── */
+.form-body{flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch}
+.form-body::-webkit-scrollbar{width:0}
+.form-card{background:#fff;border-radius:var(--radius-card);padding:16px;margin-bottom:12px;box-shadow:var(--shadow-card)}
+.form-label{font-size:10px;font-weight:800;color:#9BADC0;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.form-card select,.form-card input,.form-card textarea{
+  width:100%;border:none;outline:none;font-size:15px;font-weight:600;color:#1a1a1a;
+  background:transparent;font-family:var(--font);
+}
+.form-card select{cursor:pointer}
+.form-card textarea{resize:none;height:60px;line-height:1.6;font-weight:500}
+.form-divider{height:1px;background:rgba(0,0,0,.05);margin:10px 0}
+
+/* ── LAYANAN CHIPS ── */
+.layanan-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.layanan-chip{
+  padding:13px 10px;border:2px solid #EEF2F6;border-radius:14px;
+  background:#FAFBFC;cursor:pointer;transition:all .15s;
+}
+.layanan-chip:active{opacity:.75}
+.layanan-chip.on{border-color:var(--gp);background:var(--gp-light)}
+.lc-top{display:flex;align-items:center;gap:7px;margin-bottom:4px}
+.lc-icon{width:28px;height:28px;border-radius:8px;background:#EEF2F6;display:flex;align-items:center;justify-content:center;font-size:14px;color:#9BADC0}
+.layanan-chip.on .lc-icon{background:rgba(0,174,214,.15);color:var(--gp)}
+.lc-name{font-size:13px;font-weight:700;color:#1a1a1a}
+.layanan-chip.on .lc-name{color:var(--gp-dark)}
+.lc-price{font-size:12px;font-weight:600;color:#9BADC0;padding-left:2px}
+.layanan-chip.on .lc-price{color:var(--gp)}
+
+/* ── BERAT INPUT ── */
+.berat-row{display:flex;align-items:center;gap:0;margin-top:10px;background:#F5F7FA;border-radius:12px;border:2px solid #EEF2F6;overflow:hidden}
+.berat-btn{width:44px;height:48px;border:none;background:transparent;font-size:22px;font-weight:700;color:var(--gp);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.berat-btn:active{background:var(--gp-light)}
+.berat-val{flex:1;border:none;outline:none;background:transparent;font-size:18px;font-weight:800;color:#1a1a1a;text-align:center;font-family:var(--font)}
+.berat-unit{font-size:13px;font-weight:600;color:#9BADC0;padding-right:14px}
+
+/* ── ESTIMASI CARD ── */
+.est-card{
+  background:linear-gradient(135deg,var(--gp),var(--gp-dark));
+  border-radius:var(--radius-card);padding:16px 18px;margin-bottom:12px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.est-left .est-label{font-size:11px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.est-left .est-val{font-size:26px;font-weight:800;color:#fff;letter-spacing:-.5px}
+.est-left .est-note{font-size:11px;font-weight:600;color:rgba(255,255,255,.6);margin-top:3px}
+.est-right{font-size:36px;opacity:.25}
+
+/* ── SUMMARY CHIPS ── */
+.confirm-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(0,0,0,.05);font-size:13px}
+.confirm-row:last-child{border-bottom:none;padding-top:10px;margin-top:2px}
+.confirm-row .cl{color:#9BADC0;font-weight:600}
+.confirm-row .cr{font-weight:700;color:#1a1a1a}
+.confirm-row.total .cl{font-weight:700;color:#1a1a1a}
+.confirm-row.total .cr{font-weight:800;color:var(--gp-dark);font-size:16px}
+
+/* ── CTA BAR ── */
+.cta-bar{padding:12px 16px 16px;background:var(--gp-bg);flex-shrink:0}
+.cta-main{
+  width:100%;padding:15px;font-size:15px;font-weight:800;
+  font-family:var(--font);border-radius:16px;border:none;
+  background:linear-gradient(135deg,var(--gp),var(--gp-dark));
+  color:#fff;cursor:pointer;letter-spacing:.2px;
+  box-shadow:0 4px 16px rgba(0,174,214,.35);transition:opacity .15s,transform .1s;
+}
+.cta-main:active{opacity:.85;transform:scale(.99)}
+.cta-main:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+.cta-outline{
+  width:100%;padding:14px;font-size:15px;font-weight:700;font-family:var(--font);
+  border-radius:16px;border:2px solid var(--gp);background:transparent;color:var(--gp);
+  cursor:pointer;margin-top:8px;transition:opacity .15s;
+}
+.cta-outline:active{opacity:.7}
+
+/* ── STEPS ── */
+.steps-bar{display:flex;align-items:center;padding:14px 16px 0;flex-shrink:0}
+.stp{display:flex;align-items:center;gap:5px}
+.stp-dot{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;transition:all .25s}
+.stp-dot.done{background:#E6FAF0;color:#0F7A34}
+.stp-dot.active{background:var(--gp);color:#fff;box-shadow:0 2px 8px rgba(0,174,214,.4)}
+.stp-dot.idle{background:#EEF2F6;color:#9BADC0}
+.stp-label{color:#9BADC0;font-weight:700;font-size:12px}
+.stp-label.active{color:var(--gp)}
+.stp-sep{flex:1;height:2px;background:#EEF2F6;margin:0 4px;border-radius:1px}
+
+/* ── SUCCESS SCREEN ── */
+.success-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;text-align:center}
+.success-icon{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#E6FAF0,#BBEFD3);display:flex;align-items:center;justify-content:center;font-size:36px;color:#1DB954;margin-bottom:20px;box-shadow:0 4px 20px rgba(29,185,84,.2)}
+.success-title{font-size:20px;font-weight:800;color:#1a1a1a;margin-bottom:8px;letter-spacing:-.3px}
+.success-sub{font-size:14px;font-weight:500;color:#7890A0;line-height:1.6}
+.success-receipt{background:#F5F7FA;border-radius:16px;padding:16px;width:100%;margin:18px 0;text-align:left}
+.receipt-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.05);font-size:13px}
+.receipt-row:last-child{border-bottom:none;padding-top:10px;margin-top:2px}
+.receipt-row .rl{color:#9BADC0;font-weight:600}
+.receipt-row .rr{font-weight:700;color:#1a1a1a}
+.receipt-row.total .rl{font-weight:700;color:#1a1a1a}
+.receipt-row.total .rr{font-weight:800;color:var(--gp-dark);font-size:16px}
+
+/* ── LACAK / DETAIL ORDER ── */
+.order-id-pill{
+  background:linear-gradient(135deg,var(--gp-light),#D5F3FA);
+  border-radius:14px;padding:12px 16px;margin-bottom:12px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.oid-label{font-size:10px;font-weight:800;color:var(--gp-dark);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px}
+.oid-val{font-family:var(--font-mono);font-size:16px;font-weight:800;color:var(--gp-dark);letter-spacing:1px}
+
+/* ── STATUS FLOW TRACKER ── */
+.flow-wrap{padding:4px 0}
+.flow-step{display:flex;gap:12px;align-items:flex-start;position:relative;padding-bottom:2px}
+.flow-step:not(:last-child)::after{content:'';position:absolute;left:14px;top:30px;width:2px;height:calc(100% + 2px);background:#EEF2F6;z-index:0}
+.flow-dot{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;z-index:1;border:2px solid #EEF2F6;background:#F5F7FA;color:#C5D0DC;transition:all .3s}
+.flow-dot.done{background:#E6FAF0;color:#1DB954;border-color:#1DB954}
+.flow-dot.active{background:var(--gp);color:#fff;border-color:var(--gp);box-shadow:0 2px 8px rgba(0,174,214,.4)}
+.flow-info{flex:1;padding-top:3px;padding-bottom:18px}
+.flow-title{font-size:13px;font-weight:700;color:#C5D0DC;transition:color .3s}
+.flow-title.done,.flow-title.active{color:#1a1a1a}
+.flow-sub{font-size:11px;font-weight:500;color:#9BADC0;margin-top:2px}
+
+/* ── ADMIN ── */
+.pend-card{background:#fff;border-radius:16px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow-card)}
+.pend-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;gap:8px}
+.pend-name{font-size:14px;font-weight:700;color:#1a1a1a}
+.pend-amount{font-size:15px;font-weight:800;color:var(--gp-dark);flex-shrink:0}
+.pend-meta{font-size:11px;font-weight:600;color:#9BADC0}
+.pend-note{font-size:12px;font-weight:500;color:#B0BECC;margin-top:4px;font-style:italic}
+.pend-status-row{margin-top:8px}
+.status-pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}
+.status-pill.masuk{background:#E6F8FC;color:#0090B0}
+.status-pill.cuci{background:#FFF8E6;color:#9B7200}
+.status-pill.gosok{background:#FEF0E6;color:#C05A10}
+.status-pill.selesai{background:#E6FAF0;color:#0F7A34}
+.status-pill.diambil{background:#F2F4F6;color:#7890A0}
+.pend-btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn-action{
+  flex:1;min-width:0;padding:10px 8px;font-size:12px;font-weight:700;
+  border-radius:12px;cursor:pointer;font-family:var(--font);transition:opacity .15s;border:1.5px solid;
+}
+.btn-action:active{opacity:.7}
+.btn-cuci{background:#FFF8E6;border-color:#F0D899;color:#9B7200}
+.btn-gosok{background:#FEF0E6;border-color:#F0C8A0;color:#C05A10}
+.btn-selesai{background:#E6FAF0;border-color:#9FE1CB;color:#0F7A34}
+.btn-ambil{background:#F2F4F6;border-color:#D0D8E0;color:#7890A0}
+
+/* ── SUMMARY CARDS ── */
+.summary-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:0 0 4px}
+.sum-card{background:#fff;border-radius:16px;padding:14px;box-shadow:var(--shadow-card)}
+.sum-label{font-size:10px;font-weight:800;color:#9BADC0;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
+.sum-val{font-size:20px;font-weight:800;color:#1a1a1a}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{background:#fff;display:flex;border-top:1px solid rgba(0,0,0,.06);padding:8px 0 max(10px,env(safe-area-inset-bottom));flex-shrink:0}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border:none;background:transparent;padding:0;transition:opacity .15s;position:relative}
+.nav-item i{font-size:22px;color:#C5D0DC}
+.nav-item span{font-size:10px;font-weight:700;color:#C5D0DC;letter-spacing:.2px}
+.nav-item.on i,.nav-item.on span{color:var(--gp)}
+.nav-badge{position:absolute;top:-1px;right:16%;background:#E8B922;color:#fff;border-radius:50%;width:15px;height:15px;font-size:8px;font-weight:800;display:flex;align-items:center;justify-content:center;border:1.5px solid #fff}
+
+/* ── ALERTS ── */
+.alert-box{border-radius:12px;padding:11px 14px;font-size:13px;font-weight:600;line-height:1.5;margin-bottom:10px}
+.alert-info{background:var(--gp-light);color:var(--gp-dark)}
+.alert-warn{background:#FFF8E6;color:#9B7200}
+.alert-err{background:#FEE6E6;color:#C0392B}
+.alert-ok{background:#E6FAF0;color:#0F7A34}
+.empty{text-align:center;padding:40px 0;color:#9BADC0;font-size:14px;font-weight:600}
+.spin{text-align:center;padding:28px 0;color:#9BADC0;font-size:13px;font-weight:600}
+
+/* ── RIWAYAT FILTER ── */
+.filter-row{background:#fff;border-radius:14px;padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow-card)}
+.filter-row select{width:100%;border:none;outline:none;font-size:14px;font-weight:600;color:#1a1a1a;background:transparent;font-family:var(--font);cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+<div class="screen">
+
+<!-- ══════════════════════════════
+     HOME
+══════════════════════════════ -->
+<div class="page on" id="pg-home">
+  <div class="home-header">
+    <div class="home-greeting">Selamat datang</div>
+    <div class="home-name">eLaundry <i class="ti ti-wash-machine" style="font-size:18px"></i></div>
+    <div class="home-balance-label">Total pendapatan bulan ini</div>
+    <div class="home-balance" id="home-total">Rp0</div>
+  </div>
+  <div class="home-actions">
+    <div class="action-btn" onclick="goPage('pg-order');initOrder()">
+      <div class="action-icon"><i class="ti ti-plus"></i></div>
+      <div class="action-label">Order Baru</div>
+    </div>
+    <div class="action-btn" onclick="goPage('pg-lacak');initLacak()">
+      <div class="action-icon"><i class="ti ti-search"></i></div>
+      <div class="action-label">Lacak</div>
+    </div>
+    <div class="action-btn" onclick="goTab('riwayat')">
+      <div class="action-icon"><i class="ti ti-list"></i></div>
+      <div class="action-label">Riwayat</div>
+    </div>
+    <div class="action-btn" onclick="goTab('admin')">
+      <div class="action-icon"><i class="ti ti-shield-check"></i></div>
+      <div class="action-label">Admin</div>
+    </div>
+  </div>
+  <div class="section-title">Pesanan terbaru</div>
+  <div class="trx-list" id="home-trx"><div class="spin">Memuat...</div></div>
+  <div class="bottom-nav">
+    <button class="nav-item on" onclick="goTab('home')"><i class="ti ti-home"></i><span>Beranda</span></button>
+    <button class="nav-item" onclick="goPage('pg-order');initOrder();setNavActive(1)"><i class="ti ti-plus-circle"></i><span>Order</span></button>
+    <button class="nav-item" onclick="goTab('riwayat');setNavActive(2)"><i class="ti ti-list"></i><span>Riwayat</span></button>
+    <button class="nav-item" id="nav-admin-btn" onclick="goTab('admin');setNavActive(3)"><i class="ti ti-shield-check"></i><span>Admin</span><span class="nav-badge" id="admin-badge" style="display:none"></span></button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     ORDER BARU (3-step)
+══════════════════════════════ -->
+<div class="page" id="pg-order">
+  <div class="page-header">
+    <button class="back-btn" onclick="goTab('home')"><i class="ti ti-arrow-left"></i></button>
+    <div class="page-title">Order baru</div>
+  </div>
+  <!-- Steps bar -->
+  <div class="steps-bar">
+    <div class="stp"><div class="stp-dot active" id="sd1">1</div><span class="stp-label active" id="sl1">Detail</span></div>
+    <div class="stp-sep"></div>
+    <div class="stp"><div class="stp-dot idle" id="sd2">2</div><span class="stp-label" id="sl2">Ringkasan</span></div>
+    <div class="stp-sep"></div>
+    <div class="stp"><div class="stp-dot idle" id="sd3">3</div><span class="stp-label" id="sl3">Selesai</span></div>
+  </div>
+
+  <!-- STEP 1 — Data Order -->
+  <div class="form-body" id="order-step1">
+    <div class="form-card">
+      <div class="form-label">Nama pelanggan</div>
+      <input type="text" id="inpNama" placeholder="Masukkan nama pelanggan..."/>
+    </div>
+    <div class="form-card">
+      <div class="form-label">No. HP (opsional)</div>
+      <input type="tel" id="inpHp" placeholder="08xx-xxxx-xxxx"/>
+    </div>
+
+    <!-- Pilih Layanan -->
+    <div class="form-card">
+      <div class="form-label">Pilih layanan</div>
+      <div class="layanan-grid" id="layanan-grid">
+        <div class="layanan-chip on" data-jenis="cuci_kering" data-harga="7000" onclick="pilihLayanan(this)">
+          <div class="lc-top"><div class="lc-icon"><i class="ti ti-wind"></i></div><div class="lc-name">Cuci + Kering</div></div>
+          <div class="lc-price">Rp7.000/kg</div>
+        </div>
+        <div class="layanan-chip" data-jenis="cuci_setrika" data-harga="10000" onclick="pilihLayanan(this)">
+          <div class="lc-top"><div class="lc-icon"><i class="ti ti-shirt"></i></div><div class="lc-name">Cuci + Setrika</div></div>
+          <div class="lc-price">Rp10.000/kg</div>
+        </div>
+        <div class="layanan-chip" data-jenis="setrika" data-harga="6000" onclick="pilihLayanan(this)">
+          <div class="lc-top"><div class="lc-icon"><i class="ti ti-ironing"></i></div><div class="lc-name">Setrika Saja</div></div>
+          <div class="lc-price">Rp6.000/kg</div>
+        </div>
+        <div class="layanan-chip" data-jenis="ekspres" data-harga="15000" onclick="pilihLayanan(this)">
+          <div class="lc-top"><div class="lc-icon"><i class="ti ti-bolt"></i></div><div class="lc-name">Ekspres</div></div>
+          <div class="lc-price">Rp15.000/kg</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Berat -->
+    <div class="form-card">
+      <div class="form-label">Berat cucian (estimasi)</div>
+      <div class="berat-row">
+        <button class="berat-btn" onclick="ubahBerat(-0.5)"><i class="ti ti-minus"></i></button>
+        <input class="berat-val" type="number" id="inpBerat" value="1" min="0.5" step="0.5" oninput="hitungEstimasi()"/>
+        <span class="berat-unit">kg</span>
+        <button class="berat-btn" onclick="ubahBerat(+0.5)"><i class="ti ti-plus"></i></button>
+      </div>
+    </div>
+
+    <!-- Estimasi Harga -->
+    <div class="est-card">
+      <div class="est-left">
+        <div class="est-label">Estimasi harga</div>
+        <div class="est-val" id="est-val">Rp7.000</div>
+        <div class="est-note" id="est-note">1 kg × Rp7.000 · belum timbang</div>
+      </div>
+      <div class="est-right"><i class="ti ti-calculator"></i></div>
+    </div>
+
+    <div class="form-card">
+      <div class="form-label">Catatan</div>
+      <textarea id="inpCatatan" placeholder="Pakaian hitam dipisah, pewangi khusus, dll..."></textarea>
+    </div>
+    <div id="msg1"></div>
+  </div>
+
+  <!-- STEP 2 — Ringkasan -->
+  <div class="form-body" id="order-step2" style="display:none">
+    <div class="alert-box alert-info" style="margin-bottom:12px">
+      <i class="ti ti-info-circle"></i> Timbang ulang pakaian saat diterima, harga final menyesuaikan berat aktual.
+    </div>
+    <div class="form-card" id="rcpt-confirm" style="padding:16px">
+      <!-- filled by JS -->
+    </div>
+    <div id="msg2"></div>
+  </div>
+
+  <!-- STEP 3 — Sukses -->
+  <div class="form-body" id="order-step3" style="display:none">
+    <div class="success-screen">
+      <div class="success-icon"><i class="ti ti-circle-check"></i></div>
+      <div class="success-title">Order diterima!</div>
+      <div class="success-sub">Pakaian sedang dalam antrian.<br>Pelanggan bisa lacak via ID Order.</div>
+      <div class="success-receipt" id="rcpt-done"></div>
+    </div>
+  </div>
+
+  <!-- CTA Bars -->
+  <div class="cta-bar" id="ctaBar1">
+    <button class="cta-main" onclick="goOrderStep2()">Lanjut ke Ringkasan <i class="ti ti-arrow-right"></i></button>
+  </div>
+  <div class="cta-bar" id="ctaBar2" style="display:none">
+    <button class="cta-main" id="btnSimpan" onclick="simpanOrder()"><i class="ti ti-check"></i> Simpan Order</button>
+    <button class="cta-outline" onclick="setOrderStep(1)"><i class="ti ti-arrow-left"></i> Ubah detail</button>
+  </div>
+  <div class="cta-bar" id="ctaBar3" style="display:none">
+    <button class="cta-main" onclick="resetOrder()"><i class="ti ti-plus"></i> Order baru</button>
+    <button class="cta-outline" onclick="goTab('home')"><i class="ti ti-home"></i> Beranda</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     LACAK ORDER
+══════════════════════════════ -->
+<div class="page" id="pg-lacak">
+  <div class="page-header">
+    <button class="back-btn" onclick="goTab('home')"><i class="ti ti-arrow-left"></i></button>
+    <div class="page-title">Lacak pesanan</div>
+  </div>
+  <div class="form-body">
+    <div class="form-card" style="display:flex;align-items:center;gap:10px">
+      <i class="ti ti-search" style="color:#9BADC0;font-size:18px;flex-shrink:0"></i>
+      <input type="text" id="inpLacakId" placeholder="Masukkan ID Order (mis. LD-001)..." style="flex:1" oninput="lacakRealtime(this.value)"/>
+    </div>
+    <div id="lacak-result"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     RIWAYAT
+══════════════════════════════ -->
+<div class="page" id="pg-riwayat">
+  <div class="page-header">
+    <button class="back-btn" onclick="goTab('home')"><i class="ti ti-arrow-left"></i></button>
+    <div class="page-title">Riwayat pesanan</div>
+  </div>
+  <div class="form-body" style="padding:14px 16px">
+    <div class="filter-row">
+      <select id="filterStatus" onchange="loadRiwayat()">
+        <option value="">Semua status</option>
+        <option value="masuk">Baru Masuk</option>
+        <option value="cuci">Sedang Dicuci</option>
+        <option value="gosok">Sedang Digosok</option>
+        <option value="selesai">Siap Diambil</option>
+        <option value="diambil">Sudah Diambil</option>
+      </select>
+    </div>
+    <div class="summary-cards" style="margin-bottom:14px">
+      <div class="sum-card"><div class="sum-label">Total pesanan</div><div class="sum-val" id="rw-count">—</div></div>
+      <div class="sum-card"><div class="sum-label">Total pendapatan</div><div class="sum-val" id="rw-total">—</div></div>
+    </div>
+    <div id="rw-list"><div class="spin">Memuat...</div></div>
+  </div>
+  <div class="bottom-nav">
+    <button class="nav-item" onclick="goTab('home');setNavActive(0)"><i class="ti ti-home"></i><span>Beranda</span></button>
+    <button class="nav-item" onclick="goPage('pg-order');initOrder();setNavActive(1)"><i class="ti ti-plus-circle"></i><span>Order</span></button>
+    <button class="nav-item on" onclick="goTab('riwayat');setNavActive(2)"><i class="ti ti-list"></i><span>Riwayat</span></button>
+    <button class="nav-item" onclick="goTab('admin');setNavActive(3)"><i class="ti ti-shield-check"></i><span>Admin</span></button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     ADMIN — Kelola Proses
+══════════════════════════════ -->
+<div class="page" id="pg-admin">
+  <div class="page-header">
+    <button class="back-btn" onclick="goTab('home')"><i class="ti ti-arrow-left"></i></button>
+    <div class="page-title">Kelola proses</div>
+    <button onclick="loadAdmin()" style="margin-left:auto;background:rgba(255,255,255,.2);border:none;border-radius:50%;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;flex-shrink:0"><i class="ti ti-refresh"></i></button>
+  </div>
+  <!-- Filter tab admin -->
+  <div style="display:flex;gap:6px;padding:10px 14px 4px;flex-shrink:0;overflow-x:auto">
+    <button class="filter-tab on" data-s="" onclick="setAdminFilter(this,'')">Semua</button>
+    <button class="filter-tab" data-s="masuk" onclick="setAdminFilter(this,'masuk')">Baru Masuk</button>
+    <button class="filter-tab" data-s="cuci" onclick="setAdminFilter(this,'cuci')">Dicuci</button>
+    <button class="filter-tab" data-s="gosok" onclick="setAdminFilter(this,'gosok')">Digosok</button>
+    <button class="filter-tab" data-s="selesai" onclick="setAdminFilter(this,'selesai')">Selesai</button>
+  </div>
+  <div class="form-body" style="padding:10px 14px" id="admin-list"><div class="spin">Memuat...</div></div>
+  <div class="bottom-nav">
+    <button class="nav-item" onclick="goTab('home');setNavActive(0)"><i class="ti ti-home"></i><span>Beranda</span></button>
+    <button class="nav-item" onclick="goPage('pg-order');initOrder();setNavActive(1)"><i class="ti ti-plus-circle"></i><span>Order</span></button>
+    <button class="nav-item" onclick="goTab('riwayat');setNavActive(2)"><i class="ti ti-list"></i><span>Riwayat</span></button>
+    <button class="nav-item on" onclick="goTab('admin');setNavActive(3)"><i class="ti ti-shield-check"></i><span>Admin</span></button>
+  </div>
+</div>
+
+</div><!-- /.screen -->
+</div><!-- /.phone-frame -->
+
+<!-- ══ Filter tab style ══ -->
+<style>
+.filter-tab{flex-shrink:0;padding:7px 14px;font-size:11px;font-weight:700;border-radius:20px;border:none;cursor:pointer;font-family:var(--font);background:#fff;color:#9BADC0;transition:all .15s}
+.filter-tab.on{background:var(--gp);color:#fff}
+</style>
+
+<script>
+/* ══════════════════════════════════════
+   DATA STORE — localStorage sebagai "DB"
+══════════════════════════════════════ */
+function getOrders(){
+  try{return JSON.parse(localStorage.getItem('elaundry_orders')||'[]')}
+  catch(e){return[]}
+}
+function saveOrders(arr){localStorage.setItem('elaundry_orders',JSON.stringify(arr))}
+
+function genId(){
+  const orders=getOrders();
+  const num=orders.length+1;
+  return 'LD-'+String(num).padStart(3,'0');
+}
+
+function rp(n){return 'Rp'+Number(n).toLocaleString('id-ID')}
+
+function nowStr(){
+  const d=new Date();
+  const tgl=d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+  const jam=d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+  return {tgl,jam};
+}
+
+/* ══ STATUS META ══ */
+const STATUS_META={
+  masuk:{label:'Baru Masuk',icon:'ti-inbox',cls:'masuk',next:'cuci',nextLabel:'Mulai Cuci'},
+  cuci:{label:'Sedang Dicuci',icon:'ti-wash-machine',cls:'cuci',next:'gosok',nextLabel:'Lanjut Gosok'},
+  gosok:{label:'Sedang Digosok',icon:'ti-ironing',cls:'gosok',next:'selesai',nextLabel:'Tandai Selesai'},
+  selesai:{label:'Siap Diambil',icon:'ti-shirt',cls:'selesai',next:'diambil',nextLabel:'Sudah Diambil'},
+  diambil:{label:'Sudah Diambil',icon:'ti-circle-check',cls:'diambil',next:null,nextLabel:null},
+};
+
+const STATUS_FLOW=['masuk','cuci','gosok','selesai','diambil'];
+const STATUS_FLOW_LABEL=['Baru Masuk','Sedang Dicuci','Sedang Digosok','Siap Diambil','Sudah Diambil'];
+const STATUS_FLOW_ICON=['ti-inbox','ti-wash-machine','ti-ironing','ti-shirt','ti-circle-check'];
+
+/* ══ NAVIGASI ══ */
+let ADMIN_FILTER='';
+
+function goPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+}
+function setNavActive(i){
+  document.querySelectorAll('.bottom-nav .nav-item').forEach((b,j)=>b.classList.toggle('on',j===i));
+}
+function goTab(t){
+  const map={home:'pg-home',riwayat:'pg-riwayat',admin:'pg-admin'};
+  goPage(map[t]||'pg-home');
+  if(t==='home') loadHome();
+  if(t==='riwayat') loadRiwayat();
+  if(t==='admin') loadAdmin();
+  const idx={home:0,riwayat:2,admin:3};
+  if(idx[t]!==undefined) setNavActive(idx[t]);
+}
+
+/* ══════════════════════════════════════
+   HOME
+══════════════════════════════════════ */
+function loadHome(){
+  const orders=getOrders();
+  const bulanIni=new Date().getMonth();
+  const tahunIni=new Date().getFullYear();
+  const pendapatan=orders
+    .filter(o=>{
+      if(o.status!=='diambil') return false;
+      const d=new Date(o.createdAt);
+      return d.getMonth()===bulanIni&&d.getFullYear()===tahunIni;
+    })
+    .reduce((s,o)=>s+(o.hargaFinal||o.hargaEst||0),0);
+  document.getElementById('home-total').textContent=rp(pendapatan);
+
+  // Badge admin — pesanan aktif (belum diambil)
+  const aktif=orders.filter(o=>o.status!=='diambil');
+  const badge=document.getElementById('admin-badge');
+  if(aktif.length){badge.textContent=aktif.length;badge.style.display='flex';}
+  else{badge.style.display='none';}
+
+  const el=document.getElementById('home-trx');
+  if(!orders.length){el.innerHTML='<div class="empty"><i class="ti ti-wash-machine" style="font-size:28px;display:block;margin-bottom:10px"></i>Belum ada pesanan</div>';return;}
+  const sorted=[...orders].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  el.innerHTML=sorted.slice(0,8).map(o=>{
+    const m=STATUS_META[o.status]||STATUS_META.masuk;
+    return `<div class="trx-item" onclick="bukaDetail('${o.id}')">
+      <div class="trx-icon ${m.cls}"><i class="ti ${m.icon}"></i></div>
+      <div class="trx-meta">
+        <div class="trx-name">${o.nama}</div>
+        <div class="trx-time">${o.tgl} · ${o.jam} · ${o.id}</div>
+      </div>
+      <div class="trx-right">
+        <div class="trx-amount">${rp(o.hargaEst)}</div>
+        <span class="trx-badge ${m.cls}">${m.label}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════
+   ORDER BARU
+══════════════════════════════════════ */
+let ORDER_JENIS='cuci_kering', ORDER_HARGA=7000;
+
+function initOrder(){setOrderStep(1);}
+
+function pilihLayanan(el){
+  document.querySelectorAll('.layanan-chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  ORDER_JENIS=el.dataset.jenis;
+  ORDER_HARGA=parseInt(el.dataset.harga);
+  hitungEstimasi();
+}
+
+function ubahBerat(delta){
+  const inp=document.getElementById('inpBerat');
+  let v=parseFloat(inp.value)||1;
+  v=Math.max(0.5,Math.round((v+delta)*2)/2);
+  inp.value=v;
+  hitungEstimasi();
+}
+
+function hitungEstimasi(){
+  const berat=parseFloat(document.getElementById('inpBerat').value)||1;
+  const est=berat*ORDER_HARGA;
+  const namaLayanan={cuci_kering:'Cuci + Kering',cuci_setrika:'Cuci + Setrika',setrika:'Setrika Saja',ekspres:'Ekspres'};
+  document.getElementById('est-val').textContent=rp(est);
+  document.getElementById('est-note').textContent=
+    `${berat} kg × ${rp(ORDER_HARGA)} (${namaLayanan[ORDER_JENIS]||''})`;
+}
+
+function setOrderStep(n){
+  [1,2,3].forEach(i=>{
+    const dot=document.getElementById('sd'+i),lbl=document.getElementById('sl'+i);
+    if(i<n){dot.className='stp-dot done';dot.innerHTML='<i class="ti ti-check" style="font-size:10px"></i>';lbl.className='stp-label';}
+    else if(i===n){dot.className='stp-dot active';dot.textContent=i;lbl.className='stp-label active';}
+    else{dot.className='stp-dot idle';dot.textContent=i;lbl.className='stp-label';}
+  });
+  ['order-step1','order-step2','order-step3'].forEach((id,i)=>{
+    document.getElementById(id).style.display=i===n-1?'block':'none';
+  });
+  ['ctaBar1','ctaBar2','ctaBar3'].forEach((id,i)=>{
+    document.getElementById(id).style.display=i===n-1?'block':'none';
+  });
+}
+
+function goOrderStep2(){
+  const nama=document.getElementById('inpNama').value.trim();
+  const berat=parseFloat(document.getElementById('inpBerat').value)||0;
+  const msg=document.getElementById('msg1');
+  if(!nama){msg.innerHTML='<div class="alert-box alert-err">Nama pelanggan wajib diisi.</div>';return;}
+  if(berat<0.5){msg.innerHTML='<div class="alert-box alert-err">Berat minimal 0,5 kg.</div>';return;}
+  msg.innerHTML='';
+
+  const namaLayanan={cuci_kering:'Cuci + Kering',cuci_setrika:'Cuci + Setrika',setrika:'Setrika Saja',ekspres:'Ekspres'};
+  const est=berat*ORDER_HARGA;
+  const catatan=document.getElementById('inpCatatan').value;
+  const hp=document.getElementById('inpHp').value;
+
+  document.getElementById('rcpt-confirm').innerHTML=`
+    <div class="form-label" style="margin-bottom:12px">Ringkasan order</div>
+    ${[
+      ['Nama',nama],
+      hp?['No. HP',hp]:null,
+      ['Layanan',namaLayanan[ORDER_JENIS]||ORDER_JENIS],
+      ['Tarif',rp(ORDER_HARGA)+'/kg'],
+      ['Berat estimasi',berat+' kg'],
+      catatan?['Catatan',catatan]:null,
+    ].filter(Boolean).map(([l,v])=>`
+      <div class="confirm-row"><span class="cl">${l}</span><span class="cr">${v}</span></div>
+    `).join('')}
+    <div class="confirm-row total"><span class="cl">Estimasi biaya</span><span class="cr">${rp(est)}</span></div>
+  `;
+  setOrderStep(2);
+}
+
+function simpanOrder(){
+  const btn=document.getElementById('btnSimpan');
+  btn.disabled=true;btn.textContent='Menyimpan...';
+  const {tgl,jam}=nowStr();
+  const id=genId();
+  const berat=parseFloat(document.getElementById('inpBerat').value)||1;
+  const est=berat*ORDER_HARGA;
+  const namaLayanan={cuci_kering:'Cuci + Kering',cuci_setrika:'Cuci + Setrika',setrika:'Setrika Saja',ekspres:'Ekspres'};
+  const order={
+    id, nama:document.getElementById('inpNama').value.trim(),
+    hp:document.getElementById('inpHp').value,
+    jenis:ORDER_JENIS, jenisLabel:namaLayanan[ORDER_JENIS],
+    hargaPerKg:ORDER_HARGA, beratEst:berat, hargaEst:est,
+    beratAktual:null, hargaFinal:null,
+    catatan:document.getElementById('inpCatatan').value,
+    status:'masuk', tgl, jam, createdAt:new Date().toISOString(),
+    log:[{status:'masuk',tgl,jam}]
+  };
+  const orders=getOrders();
+  orders.push(order);
+  saveOrders(orders);
+
+  document.getElementById('rcpt-done').innerHTML=`
+    <div class="receipt-row"><span class="rl">ID Order</span><span class="rr" style="font-family:var(--font-mono)">${id}</span></div>
+    <div class="receipt-row"><span class="rl">Nama</span><span class="rr">${order.nama}</span></div>
+    <div class="receipt-row"><span class="rl">Layanan</span><span class="rr">${order.jenisLabel}</span></div>
+    <div class="receipt-row"><span class="rl">Berat est.</span><span class="rr">${berat} kg</span></div>
+    <div class="receipt-row"><span class="rl">Waktu masuk</span><span class="rr">${tgl} · ${jam}</span></div>
+    <div class="receipt-row total"><span class="rl">Est. biaya</span><span class="rr">${rp(est)}</span></div>
+  `;
+  setOrderStep(3);
+  btn.disabled=false;btn.innerHTML='<i class="ti ti-check"></i> Simpan Order';
+}
+
+function resetOrder(){
+  document.getElementById('inpNama').value='';
+  document.getElementById('inpHp').value='';
+  document.getElementById('inpBerat').value='1';
+  document.getElementById('inpCatatan').value='';
+  document.getElementById('msg1').innerHTML='';
+  ORDER_JENIS='cuci_kering';ORDER_HARGA=7000;
+  document.querySelectorAll('.layanan-chip').forEach((c,i)=>c.classList.toggle('on',i===0));
+  hitungEstimasi();
+  setOrderStep(1);
+}
+
+/* ══════════════════════════════════════
+   LACAK ORDER
+══════════════════════════════════════ */
+function initLacak(){
+  document.getElementById('inpLacakId').value='';
+  document.getElementById('lacak-result').innerHTML='';
+}
+
+let lacakTimer=null;
+function lacakRealtime(val){
+  clearTimeout(lacakTimer);
+  lacakTimer=setTimeout(()=>{
+    const q=val.trim().toUpperCase();
+    if(!q){document.getElementById('lacak-result').innerHTML='';return;}
+    const orders=getOrders();
+    const found=orders.filter(o=>o.id.includes(q)||o.nama.toLowerCase().includes(q.toLowerCase()));
+    const el=document.getElementById('lacak-result');
+    if(!found.length){el.innerHTML='<div class="empty">Pesanan tidak ditemukan</div>';return;}
+    el.innerHTML=found.map(o=>renderOrderCard(o)).join('');
+  },300);
+}
+
+function renderOrderCard(o){
+  const m=STATUS_META[o.status]||STATUS_META.masuk;
+  const curIdx=STATUS_FLOW.indexOf(o.status);
+  const flowHTML=STATUS_FLOW.map((s,i)=>{
+    const cls=i<curIdx?'done':i===curIdx?'active':'';
+    const icon=STATUS_FLOW_ICON[i];
+    const label=STATUS_FLOW_LABEL[i];
+    const sub=o.log?.find(l=>l.status===s);
+    return `<div class="flow-step">
+      <div class="flow-dot ${cls}"><i class="ti ${icon}" style="font-size:12px"></i></div>
+      <div class="flow-info">
+        <div class="flow-title ${cls}">${label}</div>
+        ${sub?`<div class="flow-sub">${sub.tgl} · ${sub.jam}</div>`:'<div class="flow-sub">—</div>'}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="form-card" style="margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#9BADC0;text-transform:uppercase;letter-spacing:.6px">ID Order</div>
+        <div style="font-family:var(--font-mono);font-size:17px;font-weight:800;color:var(--gp-dark)">${o.id}</div>
+      </div>
+      <span class="trx-badge ${m.cls}" style="font-size:11px;padding:4px 12px">${m.label}</span>
+    </div>
+    <div class="form-divider"></div>
+    ${[
+      ['Pelanggan',o.nama],
+      ['Layanan',o.jenisLabel],
+      o.beratAktual!=null?['Berat aktual',o.beratAktual+' kg']:['Berat est.',o.beratEst+' kg'],
+      ['Est. biaya',rp(o.hargaEst)],
+      o.hargaFinal!=null?['Biaya final',rp(o.hargaFinal)]:null,
+    ].filter(Boolean).map(([l,v])=>`
+      <div class="confirm-row"><span class="cl">${l}</span><span class="cr">${v}</span></div>
+    `).join('')}
+    <div class="form-divider" style="margin-top:12px"></div>
+    <div style="font-size:10px;font-weight:800;color:#9BADC0;text-transform:uppercase;letter-spacing:.6px;margin:10px 0 8px">Progress</div>
+    <div class="flow-wrap">${flowHTML}</div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════
+   RIWAYAT
+══════════════════════════════════════ */
+function loadRiwayat(){
+  const filter=document.getElementById('filterStatus').value;
+  const orders=getOrders();
+  const filtered=filter?orders.filter(o=>o.status===filter):orders;
+  const sorted=[...filtered].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+
+  const totalPendapatan=orders.filter(o=>o.status==='diambil')
+    .reduce((s,o)=>s+(o.hargaFinal||o.hargaEst||0),0);
+
+  document.getElementById('rw-count').textContent=sorted.length+'x';
+  document.getElementById('rw-total').textContent=rp(totalPendapatan);
+
+  const el=document.getElementById('rw-list');
+  if(!sorted.length){el.innerHTML='<div class="empty">Tidak ada pesanan</div>';return;}
+  el.innerHTML=sorted.map(o=>{
+    const m=STATUS_META[o.status]||STATUS_META.masuk;
+    return `<div class="trx-item" onclick="bukaDetail('${o.id}')">
+      <div class="trx-icon ${m.cls}"><i class="ti ${m.icon}"></i></div>
+      <div class="trx-meta">
+        <div class="trx-name">${o.nama}</div>
+        <div class="trx-time">${o.tgl} · ${o.id} · ${o.jenisLabel}</div>
+      </div>
+      <div class="trx-right">
+        <div class="trx-amount">${rp(o.hargaFinal||o.hargaEst)}</div>
+        <span class="trx-badge ${m.cls}">${m.label}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════
+   ADMIN — KELOLA PROSES
+══════════════════════════════════════ */
+function setAdminFilter(el,s){
+  document.querySelectorAll('.filter-tab').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  ADMIN_FILTER=s;
+  loadAdmin();
+}
+
+function loadAdmin(){
+  let orders=getOrders().filter(o=>o.status!=='diambil');
+  if(ADMIN_FILTER) orders=orders.filter(o=>o.status===ADMIN_FILTER);
+  orders.sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));
+  const el=document.getElementById('admin-list');
+  if(!orders.length){
+    el.innerHTML='<div class="empty"><i class="ti ti-circle-check" style="font-size:28px;display:block;margin-bottom:10px"></i>Tidak ada pesanan aktif</div>';
+    return;
+  }
+  el.innerHTML=orders.map(o=>{
+    const m=STATUS_META[o.status]||STATUS_META.masuk;
+    const nextStatus=m.next;
+    const nextLabel=m.nextLabel;
+    const btnNext=nextStatus?`<button class="btn-action btn-${nextStatus}" onclick="ubahStatus('${o.id}','${nextStatus}')"><i class="ti ti-arrow-right"></i> ${nextLabel}</button>`:'';
+    return `<div class="pend-card" id="pc-${o.id}">
+      <div class="pend-top">
+        <div>
+          <div class="pend-name">${o.nama}</div>
+          <div class="pend-meta">${o.id} · ${o.tgl} · ${o.jam}</div>
+        </div>
+        <div class="pend-amount">${rp(o.hargaEst)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <span class="status-pill ${m.cls}"><i class="ti ${m.icon}"></i> ${m.label}</span>
+        <span style="font-size:11px;font-weight:600;color:#9BADC0">${o.jenisLabel} · ${o.beratEst} kg est.</span>
+      </div>
+      ${o.catatan?`<div class="pend-note">"${o.catatan}"</div>`:''}
+      <!-- Input berat aktual jika status = masuk -->
+      ${o.status==='masuk'?`
+      <div style="margin-top:10px;background:#F5F7FA;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:12px;font-weight:700;color:#9BADC0">Berat aktual:</span>
+        <div class="berat-row" style="flex:1;border:1.5px solid #DDE4EC;border-radius:10px;overflow:hidden">
+          <button class="berat-btn" style="height:38px;width:38px" onclick="ubahBeratAdmin('${o.id}',-0.5)"><i class="ti ti-minus"></i></button>
+          <input class="berat-val" id="berat-${o.id}" type="number" value="${o.beratAktual||o.beratEst}" min="0.5" step="0.5" style="font-size:14px" oninput="previewHarga('${o.id}')"/>
+          <span class="berat-unit" style="font-size:12px">kg</span>
+          <button class="berat-btn" style="height:38px;width:38px" onclick="ubahBeratAdmin('${o.id}',+0.5)"><i class="ti ti-plus"></i></button>
+        </div>
+        <span style="font-size:13px;font-weight:800;color:var(--gp-dark)" id="prev-${o.id}">${rp((o.beratAktual||o.beratEst)*o.hargaPerKg)}</span>
+      </div>`:''}
+      <div class="pend-btns" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        ${btnNext}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function ubahBeratAdmin(id,delta){
+  const inp=document.getElementById('berat-'+id);
+  let v=parseFloat(inp.value)||1;
+  v=Math.max(0.5,Math.round((v+delta)*2)/2);
+  inp.value=v;
+  previewHarga(id);
+}
+
+function previewHarga(id){
+  const orders=getOrders();
+  const o=orders.find(x=>x.id===id);
+  if(!o) return;
+  const berat=parseFloat(document.getElementById('berat-'+id).value)||o.beratEst;
+  const harga=berat*o.hargaPerKg;
+  const el=document.getElementById('prev-'+id);
+  if(el) el.textContent=rp(harga);
+}
+
+function ubahStatus(id,newStatus){
+  const card=document.getElementById('pc-'+id);
+  if(card){card.style.opacity='.4';card.style.pointerEvents='none';}
+  const orders=getOrders();
+  const idx=orders.findIndex(o=>o.id===id);
+  if(idx<0){if(card){card.style.opacity='1';card.style.pointerEvents='';}return;}
+  const {tgl,jam}=nowStr();
+
+  // Jika masuk → cuci: simpan berat aktual & harga final
+  if(orders[idx].status==='masuk'){
+    const inp=document.getElementById('berat-'+id);
+    if(inp){
+      const ba=parseFloat(inp.value)||orders[idx].beratEst;
+      orders[idx].beratAktual=ba;
+      orders[idx].hargaFinal=ba*orders[idx].hargaPerKg;
+    }
+  }
+
+  orders[idx].status=newStatus;
+  if(!orders[idx].log) orders[idx].log=[];
+  orders[idx].log.push({status:newStatus,tgl,jam});
+  saveOrders(orders);
+  setTimeout(()=>loadAdmin(),300);
+}
+
+/* ══════════════════════════════════════
+   DETAIL ORDER (dari home/riwayat)
+══════════════════════════════════════ */
+function bukaDetail(id){
+  const orders=getOrders();
+  const o=orders.find(x=>x.id===id);
+  if(!o) return;
+  // Buka halaman lacak dan isi ID
+  goPage('pg-lacak');
+  document.getElementById('inpLacakId').value=id;
+  document.getElementById('lacak-result').innerHTML=renderOrderCard(o);
+}
+
+/* ══════════════════════════════════════
+   INIT
+══════════════════════════════════════ */
+// Seed data demo jika kosong
+(function seedDemo(){
+  const orders=getOrders();
+  if(orders.length) return;
+  const demo=[
+    {id:'LD-001',nama:'Budi Santoso',hp:'08112345678',jenis:'cuci_setrika',jenisLabel:'Cuci + Setrika',hargaPerKg:10000,beratEst:3,hargaEst:30000,beratAktual:3.2,hargaFinal:32000,catatan:'',status:'gosok',tgl:'05 Jun 2026',jam:'08:15',createdAt:'2026-06-05T08:15:00',log:[{status:'masuk',tgl:'05 Jun 2026',jam:'08:15'},{status:'cuci',tgl:'05 Jun 2026',jam:'09:00'},{status:'gosok',tgl:'05 Jun 2026',jam:'11:30'}]},
+    {id:'LD-002',nama:'Siti Rahayu',hp:'08223456789',jenis:'cuci_kering',jenisLabel:'Cuci + Kering',hargaPerKg:7000,beratEst:2,hargaEst:14000,beratAktual:2.5,hargaFinal:17500,catatan:'pakaian bayi',status:'selesai',tgl:'05 Jun 2026',jam:'09:30',createdAt:'2026-06-05T09:30:00',log:[{status:'masuk',tgl:'05 Jun 2026',jam:'09:30'},{status:'cuci',tgl:'05 Jun 2026',jam:'10:00'},{status:'gosok',tgl:'05 Jun 2026',jam:'12:00'},{status:'selesai',tgl:'05 Jun 2026',jam:'14:00'}]},
+    {id:'LD-003',nama:'Andi Wijaya',hp:'',jenis:'setrika',jenisLabel:'Setrika Saja',hargaPerKg:6000,beratEst:4,hargaEst:24000,beratAktual:null,hargaFinal:null,catatan:'',status:'masuk',tgl:'05 Jun 2026',jam:'10:45',createdAt:'2026-06-05T10:45:00',log:[{status:'masuk',tgl:'05 Jun 2026',jam:'10:45'}]},
+  ];
+  saveOrders(demo);
+})();
+
+loadHome();
+hitungEstimasi();
+setOrderStep(1);
+</script>
+</body>
+</html>
