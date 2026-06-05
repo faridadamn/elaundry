@@ -1,0 +1,18 @@
+{
+  "name": "elaundry",
+  "version": "1.0.0",
+  "private": true,
+  "description": "eLaundry mobile app wrapper",
+  "scripts": {
+    "prepare:web": "powershell -ExecutionPolicy Bypass -NoProfile -Command \"New-Item -ItemType Directory -Force www | Out-Null; Copy-Item index.html,elaundry.html,elaundry-customer.html -Destination www -Force\"",
+    "sync": "npm run prepare:web && npx cap sync android",
+    "open:android": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/core": "^7.4.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.4"
+  }
+}

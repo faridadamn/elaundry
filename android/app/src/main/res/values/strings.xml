@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">eLaundry</string>
+    <string name="title_activity_main">eLaundry</string>
+    <string name="package_name">com.faridadamn.elaundry</string>
+    <string name="custom_url_scheme">com.faridadamn.elaundry</string>
+</resources>
