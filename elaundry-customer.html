@@ -67,6 +67,12 @@ html,body{height:100%;background:#CBD8E3;font-family:var(--font);-webkit-font-sm
 .auth-sheet::-webkit-scrollbar{width:0}
 .auth-title{font-size:20px;font-weight:800;color:#1a1a1a;margin-bottom:4px}
 .auth-sub{font-size:13px;font-weight:500;color:#9BADC0;margin-bottom:24px}
+.tenant-card{background:#fff;border-radius:18px;padding:16px;box-shadow:var(--sh);margin-bottom:14px}
+.tenant-card .inp-wrap{box-shadow:none}
+.tenant-example{font-size:11px;font-weight:600;color:#9BADC0;line-height:1.5;margin-top:8px}
+.tenant-selected{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--gp-dark);margin-bottom:14px}
+.tenant-dot{width:10px;height:10px;border-radius:50%;background:var(--gp);box-shadow:0 0 0 4px var(--gp-light)}
+.tenant-switch{background:none;border:none;color:var(--gp);font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer;padding:0}
 
 /* ══ AUTH TABS ══ */
 .auth-tabs{display:flex;background:#EEF2F6;border-radius:12px;padding:3px;margin-bottom:22px}
@@ -315,16 +321,47 @@ html,body{height:100%;background:#CBD8E3;font-family:var(--font);-webkit-font-sm
 <div class="phone-frame">
 <div class="screen">
 
+<div class="page on" id="pg-laundry">
+  <div class="auth-bg">
+    <div class="auth-top">
+      <div class="auth-logo"><i class="ti ti-building-store"></i> eLaundry</div>
+      <div class="auth-tagline">Pilih laundry untuk mulai menggunakan aplikasi.</div>
+    </div>
+    <div class="auth-sheet">
+      <div class="auth-title">Pilih laundry</div>
+      <div class="auth-sub">Masukkan kode laundry yang diberikan outlet.</div>
+      <div class="tenant-card">
+        <div class="inp-group" style="margin-bottom:10px">
+          <div class="inp-label">Kode / slug laundry</div>
+          <div class="inp-wrap">
+            <i class="ti ti-hash"></i>
+            <input type="text" id="laundry-slug" placeholder="contoh: elaundry" autocapitalize="none" autocomplete="off"/>
+          </div>
+          <div class="tenant-example">Untuk data saat ini gunakan kode <b>elaundry</b>. Nanti kode ini bisa diisi sesuai slug tiap laundry.</div>
+        </div>
+        <div id="msg-laundry"></div>
+        <button class="cta-main" onclick="submitLaundrySlug()" style="margin-top:4px">Pilih Laundry & Login <i class="ti ti-arrow-right"></i></button>
+        <button class="cta-outline" onclick="useDefaultLaundry()">Gunakan eLaundry</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════════════════
      AUTH — Login / Daftar
 ══════════════════════════════ -->
-<div class="page on" id="pg-auth">
+<div class="page" id="pg-auth">
   <div class="auth-bg">
     <div class="auth-top">
-      <div class="auth-logo"><i class="ti ti-wash-machine"></i> eLaundry</div>
-      <div class="auth-tagline">Laundry kiloan lebih mudah & transparan</div>
+      <div class="auth-logo" id="brand-logo"><i class="ti ti-wash-machine"></i> <span id="brand-name">eLaundry</span></div>
+      <div class="auth-tagline" id="brand-tagline">Laundry kiloan lebih mudah & transparan</div>
     </div>
     <div class="auth-sheet">
+      <div class="tenant-selected" id="tenant-selected" style="display:none">
+        <span class="tenant-dot"></span>
+        <span id="tenant-selected-name">eLaundry</span>
+        <button class="tenant-switch" onclick="switchLaundry()" style="margin-left:auto">Ganti</button>
+      </div>
       <div class="auth-tabs">
         <button class="auth-tab on" onclick="switchAuthTab('login')">Masuk</button>
         <button class="auth-tab" onclick="switchAuthTab('daftar')">Daftar</button>
@@ -454,7 +491,7 @@ html,body{height:100%;background:#CBD8E3;font-family:var(--font);-webkit-font-sm
     </div>
     <div class="form-card">
       <div class="form-label">Pilih layanan</div>
-      <div class="layanan-grid">
+      <div class="layanan-grid" id="layanan-grid">
         <div class="layanan-chip on" data-jenis="cuci_kering" data-harga="7000" onclick="pilihLayanan(this)">
           <div class="lc-top"><div class="lc-icon"><i class="ti ti-wind"></i></div><div class="lc-name">Cuci + Kering</div></div>
           <div class="lc-price">Rp7.000/kg</div>
@@ -606,10 +643,33 @@ const SUPABASE_URL = 'https://kdgvzxygpeahttziwssz.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtkZ3Z6eHlncGVhaHR0eml3c3N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2MTg3NjgsImV4cCI6MjA5NjE5NDc2OH0.JyYukac8O7mJrBlhO43x5EiYzfs9qZwlw_DpR3OjHZs';
 const API_URL = '';
 const DEMO_MODE = false;
+const STORAGE_KEYS = {
+  laundry:'el_current_laundry'
+};
+const DEFAULT_SERVICES = [
+  {code:'cuci_kering',name:'Cuci + Kering',pricePerKg:7000,icon:'ti-wind'},
+  {code:'cuci_setrika',name:'Cuci + Setrika',pricePerKg:10000,icon:'ti-shirt'},
+  {code:'setrika',name:'Setrika Saja',pricePerKg:6000,icon:'ti-ironing'},
+  {code:'ekspres',name:'Ekspres',pricePerKg:15000,icon:'ti-bolt'},
+];
+const DEFAULT_LAUNDRY = {
+  id:'default-elaundry',
+  slug:'elaundry',
+  name:'eLaundry',
+  tagline:'Laundry kiloan lebih mudah & transparan',
+  receiptTagline:'Laundry Kiloan Terpercaya',
+  primaryColor:'#00AED6',
+  primaryDark:'#0090B0',
+  primaryLight:'#E6F8FC',
+  backgroundColor:'#F0F5F9',
+  services:DEFAULT_SERVICES
+};
 
 /* ═══════════════════════════════════════════════
    STATE
 ═══════════════════════════════════════════════ */
+var CURRENT_LAUNDRY = null;
+var CURRENT_USER = null;
 let SESSION = null; // {id, nama, hp}
 let ORDER_JENIS = 'cuci_kering', ORDER_HARGA = 7000;
 let CURRENT_ORDER = null; // order yang sedang dilihat detail
@@ -637,6 +697,234 @@ function nowStr(){
   const tgl=d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
   const jam=d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
   return {tgl,jam};
+}
+
+function getPreferencesStorage(){
+  return window.Capacitor?.Plugins?.Preferences || window.Capacitor?.Preferences || null;
+}
+
+async function storageGet(key){
+  const prefs=getPreferencesStorage();
+  if(prefs?.get){
+    try{
+      const res=await prefs.get({key});
+      return res?.value || null;
+    }catch(e){}
+  }
+  try{return localStorage.getItem(key)}catch(e){return null}
+}
+
+async function storageSet(key,value){
+  const prefs=getPreferencesStorage();
+  if(prefs?.set){
+    try{
+      await prefs.set({key,value});
+      return;
+    }catch(e){}
+  }
+  try{localStorage.setItem(key,value)}catch(e){}
+}
+
+async function storageRemove(key){
+  const prefs=getPreferencesStorage();
+  if(prefs?.remove){
+    try{
+      await prefs.remove({key});
+      return;
+    }catch(e){}
+  }
+  try{localStorage.removeItem(key)}catch(e){}
+}
+
+async function getSavedLaundry(){
+  const raw=await storageGet(STORAGE_KEYS.laundry);
+  if(!raw) return null;
+  try{return JSON.parse(raw)}catch(e){return null}
+}
+
+async function saveLaundry(laundry){
+  CURRENT_LAUNDRY=laundry;
+  await storageSet(STORAGE_KEYS.laundry,JSON.stringify(laundry));
+}
+
+async function clearSavedLaundry(){
+  CURRENT_LAUNDRY=null;
+  await storageRemove(STORAGE_KEYS.laundry);
+}
+
+function normalizeSlug(slug){
+  return String(slug||'').trim().toLowerCase().replace(/\s+/g,'-');
+}
+
+function normalizeLaundry(row){
+  const settings=row?.settings || {};
+  const services=Array.isArray(row?.services) ? row.services : Array.isArray(settings.services) ? settings.services : DEFAULT_SERVICES;
+  return {
+    id:row?.id || row?.slug || DEFAULT_LAUNDRY.id,
+    slug:normalizeSlug(row?.slug || DEFAULT_LAUNDRY.slug),
+    name:row?.name || row?.nama || DEFAULT_LAUNDRY.name,
+    logoUrl:row?.logo_url || settings.logoUrl || '',
+    tagline:row?.tagline || settings.tagline || DEFAULT_LAUNDRY.tagline,
+    receiptTagline:row?.receipt_tagline || settings.receiptTagline || DEFAULT_LAUNDRY.receiptTagline,
+    primaryColor:row?.primary_color || row?.brand_color || settings.primaryColor || DEFAULT_LAUNDRY.primaryColor,
+    primaryDark:row?.secondary_color || row?.primary_dark || settings.primaryDark || DEFAULT_LAUNDRY.primaryDark,
+    primaryLight:row?.primary_light || settings.primaryLight || DEFAULT_LAUNDRY.primaryLight,
+    backgroundColor:row?.background_color || settings.backgroundColor || DEFAULT_LAUNDRY.backgroundColor,
+    phone:row?.phone || '',
+    address:row?.address || '',
+    plan:row?.plan || '',
+    isActive:row?.is_active !== false,
+    services:services.map(s=>({
+      code:s.code || s.jenis || s.slug,
+      name:s.name || s.label || s.nama,
+      pricePerKg:Number(s.pricePerKg ?? s.price_per_kg ?? s.harga ?? s.price) || 0,
+      icon:s.icon || 'ti-wash'
+    })).filter(s=>s.code && s.name && s.pricePerKg>0)
+  };
+}
+
+async function getLaundryBySlug(slug){
+  const clean=normalizeSlug(slug);
+  if(!clean) return null;
+  if(supabaseReady()){
+    try{
+      const fields='id,slug,name,logo_url,primary_color,secondary_color,phone,address,tagline,is_active,plan';
+      const rows=await supabaseFetch(`laundries?select=${fields}&slug=eq.${encodeURIComponent(clean)}&is_active=eq.true&limit=1`);
+      return rows?.[0] ? normalizeLaundry(rows[0]) : null;
+    }catch(e){
+      console.error('Failed to load laundry by slug', e);
+      return null;
+    }
+  }
+  if(clean===DEFAULT_LAUNDRY.slug) return normalizeLaundry(DEFAULT_LAUNDRY);
+  return null;
+}
+
+function getLaundryServices(){
+  return CURRENT_LAUNDRY?.services?.length ? CURRENT_LAUNDRY.services : DEFAULT_SERVICES;
+}
+
+function getServiceByCode(code){
+  return getLaundryServices().find(s=>s.code===code) || getLaundryServices()[0] || DEFAULT_SERVICES[0];
+}
+
+function renderLaundryServices(){
+  const grid=document.getElementById('layanan-grid');
+  if(!grid) return;
+  grid.innerHTML=getLaundryServices().map((s,i)=>`
+    <div class="layanan-chip ${i===0?'on':''}" data-jenis="${s.code}" data-harga="${s.pricePerKg}" onclick="pilihLayanan(this)">
+      <div class="lc-top"><div class="lc-icon"><i class="ti ${s.icon||'ti-wash'}"></i></div><div class="lc-name">${s.name}</div></div>
+      <div class="lc-price">${rp(s.pricePerKg)}/kg</div>
+    </div>
+  `).join('');
+  const first=getLaundryServices()[0] || DEFAULT_SERVICES[0];
+  ORDER_JENIS=first.code;
+  ORDER_HARGA=first.pricePerKg;
+}
+
+function applyLaundryBrand(laundry){
+  const l=normalizeLaundry(laundry || DEFAULT_LAUNDRY);
+  CURRENT_LAUNDRY=l;
+  const root=document.documentElement;
+  root.style.setProperty('--gp',l.primaryColor);
+  root.style.setProperty('--gp-dark',l.primaryDark);
+  root.style.setProperty('--gp-light',l.primaryLight);
+  root.style.setProperty('--gp-bg',l.backgroundColor);
+  document.title=`${l.name} - Customer`;
+  const brandName=document.getElementById('brand-name');
+  const brandTagline=document.getElementById('brand-tagline');
+  const selected=document.getElementById('tenant-selected');
+  const selectedName=document.getElementById('tenant-selected-name');
+  if(brandName) brandName.textContent=l.name;
+  if(brandTagline) brandTagline.textContent=l.tagline;
+  if(selected) selected.style.display='flex';
+  if(selectedName) selectedName.textContent=l.name;
+  renderLaundryServices();
+  hitungEstimasi();
+}
+
+function orderMatchesCurrentLaundry(order){
+  if(!CURRENT_LAUNDRY) return true;
+  const orderLaundryId=order.laundryId || order.laundry_id;
+  const orderLaundrySlug=normalizeSlug(order.laundrySlug || order.laundry_slug);
+  if(orderLaundryId) return String(orderLaundryId)===String(CURRENT_LAUNDRY.id);
+  if(orderLaundrySlug) return orderLaundrySlug===CURRENT_LAUNDRY.slug;
+  return CURRENT_LAUNDRY.slug===DEFAULT_LAUNDRY.slug;
+}
+
+async function continueAppFlow(){
+  const s=loadSession();
+  if(s){
+    SESSION=s;
+    CURRENT_USER=s;
+    afterLogin();
+  }else{
+    goPage('pg-auth',false);
+  }
+  hitungEstimasi();
+  setOrderStep(1);
+}
+
+async function bootApp(){
+  loading('Memuat aplikasi...');
+  try{
+    const params=new URLSearchParams(window.location.search);
+    const urlSlug=params.get('laundry') || params.get('tenant') || params.get('slug');
+    let laundry=urlSlug ? await getLaundryBySlug(urlSlug) : null;
+    if(laundry) await saveLaundry(laundry);
+    if(!laundry) laundry=await getSavedLaundry();
+    if(!laundry){
+      goPage('pg-laundry',false);
+      const inp=document.getElementById('laundry-slug');
+      if(inp) inp.value=DEFAULT_LAUNDRY.slug;
+      return;
+    }
+    CURRENT_LAUNDRY=normalizeLaundry(laundry);
+    applyLaundryBrand(CURRENT_LAUNDRY);
+    await continueAppFlow();
+  }finally{
+    unloading();
+  }
+}
+
+async function submitLaundrySlug(){
+  const input=document.getElementById('laundry-slug');
+  const msg=document.getElementById('msg-laundry');
+  const slug=normalizeSlug(input?.value);
+  if(!slug){
+    msg.innerHTML='<div class="alert-box alert-err">Kode laundry wajib diisi.</div>';
+    return;
+  }
+  loading('Mencari laundry...');
+  try{
+    const laundry=await getLaundryBySlug(slug);
+    if(!laundry){
+      msg.innerHTML='<div class="alert-box alert-err">Kode laundry tidak ditemukan.</div>';
+      return;
+    }
+    await saveLaundry(laundry);
+    applyLaundryBrand(laundry);
+    await continueAppFlow();
+  }finally{
+    unloading();
+  }
+}
+
+async function useDefaultLaundry(){
+  const laundry=normalizeLaundry(DEFAULT_LAUNDRY);
+  await saveLaundry(laundry);
+  applyLaundryBrand(laundry);
+  await continueAppFlow();
+}
+
+async function switchLaundry(){
+  clearSession();
+  await clearSavedLaundry();
+  CURRENT_ORDER=null;
+  PREV_PAGE='pg-home';
+  document.getElementById('laundry-slug').value=DEFAULT_LAUNDRY.slug;
+  document.getElementById('msg-laundry').innerHTML='';
+  goPage('pg-laundry',false);
 }
 
 /* ═══════════════════════════════════════════════
@@ -690,6 +978,9 @@ function demoCreateOrder({customerId,nama,hp,jenis,jenisLabel,hargaPerKg,beratEs
   const id=genOrdId();
   const order={
     id,customerId,nama,hp,jenis,jenisLabel,
+    laundryId:CURRENT_LAUNDRY?.id||DEFAULT_LAUNDRY.id,
+    laundrySlug:CURRENT_LAUNDRY?.slug||DEFAULT_LAUNDRY.slug,
+    laundryName:CURRENT_LAUNDRY?.name||DEFAULT_LAUNDRY.name,
     hargaPerKg:parseFloat(hargaPerKg),beratEst:parseFloat(beratEst),
     hargaEst,beratAktual:null,hargaFinal:null,
     catatan:catatan||'',status:'dibuat',tgl,jam,
@@ -703,6 +994,7 @@ function demoCreateOrder({customerId,nama,hp,jenis,jenisLabel,hargaPerKg,beratEs
 function demoGetOrders({customerId,status=''}){
   let orders=getOrders();
   if(customerId) orders=orders.filter(o=>o.customerId===customerId);
+  orders=orders.filter(orderMatchesCurrentLaundry);
   if(status) orders=orders.filter(o=>o.status===status);
   orders.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   return{success:true,orders};
@@ -711,6 +1003,7 @@ function demoGetOrders({customerId,status=''}){
 function demoGetOrderById({id}){
   const o=getOrders().find(x=>x.id===id);
   if(!o) return{success:false,error:'Order tidak ditemukan.'};
+  if(!orderMatchesCurrentLaundry(o)) return{success:false,error:'Order tidak ditemukan.'};
   return{success:true,order:o};
 }
 
@@ -802,6 +1095,9 @@ async function api(params){
         const id='LD-'+String((await countRows('orders'))+1).padStart(3,'0');
         const order={
           id,customerId:params.customerId,nama:params.nama,hp:params.hp,
+          laundryId:CURRENT_LAUNDRY?.id||DEFAULT_LAUNDRY.id,
+          laundrySlug:CURRENT_LAUNDRY?.slug||DEFAULT_LAUNDRY.slug,
+          laundryName:CURRENT_LAUNDRY?.name||DEFAULT_LAUNDRY.name,
           jenis:params.jenis,jenisLabel:params.jenisLabel,
           hargaPerKg:parseFloat(params.hargaPerKg),beratEst:parseFloat(params.beratEst),
           hargaEst,beratAktual:null,hargaFinal:null,
@@ -820,18 +1116,22 @@ async function api(params){
         const rows=await supabaseFetch(path);
         const orders=[];
         for(const row of rows) orders.push(await maybeAutoComplete(fromOrderRow(row)));
-        return{success:true,orders:params.status?orders.filter(o=>normalizeStatus(o.status)===params.status):orders};
+        const scoped=orders.filter(orderMatchesCurrentLaundry);
+        return{success:true,orders:params.status?scoped.filter(o=>normalizeStatus(o.status)===params.status):scoped};
       }
       case 'getOrderById':{
         const rows=await supabaseFetch(`orders?select=*&id=eq.${encodeURIComponent(params.id)}&limit=1`);
         if(!rows.length) return{success:false,error:'Order tidak ditemukan.'};
-        return{success:true,order:await maybeAutoComplete(fromOrderRow(rows[0]))};
+        const order=await maybeAutoComplete(fromOrderRow(rows[0]));
+        if(!orderMatchesCurrentLaundry(order)) return{success:false,error:'Order tidak ditemukan.'};
+        return{success:true,order};
       }
       case 'finishOrderWithRating':{
         const rows=await supabaseFetch(`orders?select=*&id=eq.${encodeURIComponent(params.id)}&limit=1`);
         if(!rows.length) return{success:false,error:'Order tidak ditemukan.'};
         const {tgl,jam}=nowStr();
         const order=fromOrderRow(rows[0]);
+        if(!orderMatchesCurrentLaundry(order)) return{success:false,error:'Order tidak ditemukan.'};
         const updated={
           ...order,
           status:'selesai_final',
@@ -914,12 +1214,13 @@ function normalizeStatus(status){
   return status;
 }
 
-function saveSession(c){ SESSION=c; localStorage.setItem('el_session',JSON.stringify(c)) }
+function saveSession(c){ SESSION=c; CURRENT_USER=c; localStorage.setItem('el_session',JSON.stringify(c)) }
 function loadSession(){ 
   try{SESSION=JSON.parse(localStorage.getItem('el_session'));} catch(e){SESSION=null;}
+  CURRENT_USER=SESSION;
   return SESSION;
 }
-function clearSession(){ SESSION=null; localStorage.removeItem('el_session') }
+function clearSession(){ SESSION=null; CURRENT_USER=null; localStorage.removeItem('el_session') }
 
 /* ═══════════════════════════════════════════════
    AUTH
@@ -977,8 +1278,15 @@ function afterLogin(){
 }
 
 function doLogout(){
-  if(!confirm('Yakin ingin keluar?')) return;
   clearSession();
+  CURRENT_ORDER=null;
+  PREV_PAGE='pg-home';
+  switchAuthTab('login');
+  const loginMsg=document.getElementById('msg-login');
+  const daftarMsg=document.getElementById('msg-daftar');
+  if(loginMsg) loginMsg.innerHTML='';
+  if(daftarMsg) daftarMsg.innerHTML='';
+  setNavActive(0);
   goPage('pg-auth',false);
 }
 
@@ -1042,10 +1350,12 @@ function ubahBerat(d){
 }
 
 function hitungEstimasi(){
+  if(!document.getElementById('o-berat')) return;
   const berat=parseFloat(document.getElementById('o-berat').value)||1;
   const namaL={cuci_kering:'Cuci + Kering',cuci_setrika:'Cuci + Setrika',setrika:'Setrika Saja',ekspres:'Ekspres'};
+  const service=getServiceByCode(ORDER_JENIS);
   document.getElementById('est-val').textContent=rp(berat*ORDER_HARGA);
-  document.getElementById('est-note').textContent=`${berat} kg × ${rp(ORDER_HARGA)} (${namaL[ORDER_JENIS]})`;
+  document.getElementById('est-note').textContent=`${berat} kg x ${rp(ORDER_HARGA)} (${getServiceByCode(ORDER_JENIS).name || namaL[ORDER_JENIS]})`;
 }
 
 function setOrderStep(n){
@@ -1078,7 +1388,7 @@ function goOrderStep2(){
     <div class="form-label" style="margin-bottom:12px">Ringkasan order</div>
     ${[
       ['Nama',nama],hp?['No. HP',hp]:null,
-      ['Layanan',namaL[ORDER_JENIS]],['Tarif',rp(ORDER_HARGA)+'/kg'],
+      ['Layanan',service.name || namaL[ORDER_JENIS]],['Tarif',rp(ORDER_HARGA)+'/kg'],
       ['Berat estimasi',berat+' kg'],catatan?['Catatan',catatan]:null,
     ].filter(Boolean).map(([l,v])=>`<div class="confirm-row"><span class="cl">${l}</span><span class="cr">${v}</span></div>`).join('')}
     <div class="confirm-row total"><span class="cl">Estimasi biaya</span><span class="cr">${rp(est)}</span></div>
@@ -1092,13 +1402,14 @@ async function simpanOrder(){
   const btn=document.getElementById('o-btnSimpan');
   btn.disabled=true;btn.textContent='Menyimpan...';
   const namaL={cuci_kering:'Cuci + Kering',cuci_setrika:'Cuci + Setrika',setrika:'Setrika Saja',ekspres:'Ekspres'};
+  const service=getServiceByCode(ORDER_JENIS);
   try{
     const res=await api({
       action:'createOrder',
       customerId:SESSION?.id||'',
       nama:document.getElementById('o-nama').value.trim(),
       hp:document.getElementById('o-hp').value,
-      jenis:ORDER_JENIS,jenisLabel:namaL[ORDER_JENIS],
+      jenis:ORDER_JENIS,jenisLabel:service.name || namaL[ORDER_JENIS],
       hargaPerKg:ORDER_HARGA,
       beratEst:parseFloat(document.getElementById('o-berat').value)||1,
       catatan:document.getElementById('o-catatan').value,
@@ -1276,11 +1587,12 @@ function cetakStruk(mode){
   const o = mode==='new' ? CURRENT_ORDER : CURRENT_ORDER;
   if(!o){alert('Data order tidak tersedia.');return;}
   const m=STATUS_META[normalizeStatus(o.status)]||STATUS_META.diterima;
+  const laundry=CURRENT_LAUNDRY || DEFAULT_LAUNDRY;
   const struktHTML=`
     <div class="struk-wrap">
       <div class="struk-header">
-        <div class="struk-logo">🧺 eLaundry</div>
-        <div class="struk-sub">Laundry Kiloan Terpercaya</div>
+        <div class="struk-logo">${laundry.name}</div>
+        <div class="struk-sub">${laundry.receiptTagline || laundry.tagline || DEFAULT_LAUNDRY.receiptTagline}</div>
         <div class="struk-sub" style="margin-top:4px">${o.tgl} · ${o.jam}</div>
       </div>
       <div class="struk-body">
@@ -1320,7 +1632,7 @@ function cetakStruk(mode){
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
       *{box-sizing:border-box;margin:0;padding:0}
-      :root{--gp:#00AED6;--gp-dark:#0090B0;--gp-light:#E6F8FC;--font:'Plus Jakarta Sans',sans-serif;--font-mono:'SF Mono','Courier New',monospace;--sh:0 2px 12px rgba(0,0,0,.07)}
+      :root{--gp:${laundry.primaryColor || DEFAULT_LAUNDRY.primaryColor};--gp-dark:${laundry.primaryDark || DEFAULT_LAUNDRY.primaryDark};--gp-light:${laundry.primaryLight || DEFAULT_LAUNDRY.primaryLight};--font:'Plus Jakarta Sans',sans-serif;--font-mono:'SF Mono','Courier New',monospace;--sh:0 2px 12px rgba(0,0,0,.07)}
       body{font-family:var(--font);background:#f0f2f5;padding:20px;min-height:100vh;display:flex;align-items:flex-start;justify-content:center}
       .struk-wrap{background:#fff;border-radius:16px;padding:22px;max-width:320px;width:100%;box-shadow:var(--sh);font-family:var(--font-mono)}
       .struk-header{text-align:center;border-bottom:2px dashed #DDE4EC;padding-bottom:14px;margin-bottom:14px}
@@ -1349,13 +1661,7 @@ function cetakStruk(mode){
    INIT
 ═══════════════════════════════════════════════ */
 (function init(){
-  const s=loadSession();
-  if(s){
-    SESSION=s;
-    afterLogin();
-  }
-  hitungEstimasi();
-  setOrderStep(1);
+  bootApp();
 })();
 </script>
 </body>

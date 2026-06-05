@@ -289,6 +289,26 @@ html,body{
 /* ── RIWAYAT FILTER ── */
 .filter-row{background:#fff;border-radius:14px;padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow-card)}
 .filter-row select{width:100%;border:none;outline:none;font-size:14px;font-weight:600;color:#1a1a1a;background:transparent;font-family:var(--font);cursor:pointer}
+.auth-bg{flex:1;display:flex;flex-direction:column;background:linear-gradient(160deg,var(--gp) 0%,#006E8A 100%);position:relative;overflow:hidden}
+.auth-bg::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.07)}
+.auth-top{padding:40px 28px 28px;flex-shrink:0}
+.auth-logo{font-size:28px;font-weight:800;color:#fff;display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.auth-tagline{font-size:13px;font-weight:500;color:rgba(255,255,255,.75)}
+.auth-sheet{background:var(--gp-bg);border-radius:28px 28px 0 0;padding:28px 22px 20px;flex:1;overflow-y:auto}
+.auth-title{font-size:20px;font-weight:800;color:#1a1a1a;margin-bottom:4px}
+.auth-sub{font-size:13px;font-weight:500;color:#9BADC0;margin-bottom:22px}
+.auth-tabs{display:flex;background:#EEF2F6;border-radius:12px;padding:3px;margin-bottom:22px}
+.auth-tab{flex:1;padding:9px;font-size:13px;font-weight:700;border-radius:10px;border:none;cursor:pointer;font-family:var(--font);background:transparent;color:#9BADC0}
+.auth-tab.on{background:#fff;color:var(--gp);box-shadow:0 1px 6px rgba(0,0,0,.1)}
+.inp-group{margin-bottom:14px}
+.inp-label{font-size:10px;font-weight:800;color:#9BADC0;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px}
+.inp-wrap{background:#fff;border-radius:14px;padding:0 14px;display:flex;align-items:center;gap:10px;border:2px solid #EEF2F6;box-shadow:var(--shadow-card)}
+.inp-wrap:focus-within{border-color:var(--gp)}
+.inp-wrap i{font-size:17px;color:#C5D0DC;flex-shrink:0}
+.inp-wrap input{flex:1;border:none;outline:none;padding:13px 0;font-size:14px;font-weight:600;color:#1a1a1a;background:transparent;font-family:var(--font)}
+.tenant-selected{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--gp-dark);margin-bottom:14px}
+.tenant-dot{width:10px;height:10px;border-radius:50%;background:var(--gp);box-shadow:0 0 0 4px var(--gp-light)}
+.tenant-switch{background:none;border:none;color:var(--gp);font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer;padding:0}
 </style>
 </head>
 <body>
@@ -296,13 +316,67 @@ html,body{
 <div class="phone-frame">
 <div class="screen">
 
+<div class="page on" id="pg-auth">
+  <div class="auth-bg">
+    <div class="auth-top">
+      <div class="auth-logo"><i class="ti ti-building-store"></i> eLaundry</div>
+      <div class="auth-tagline">Masuk atau daftarkan laundry untuk mengelola pesanan.</div>
+    </div>
+    <div class="auth-sheet">
+      <div class="auth-tabs">
+        <button class="auth-tab on" onclick="switchAuthTab('login')">Masuk</button>
+        <button class="auth-tab" onclick="switchAuthTab('daftar')">Daftar</button>
+      </div>
+
+      <div id="auth-login">
+        <div class="auth-title">Masuk laundry</div>
+        <div class="auth-sub">Gunakan kode/slug laundry yang sudah terdaftar.</div>
+        <div class="inp-group">
+          <div class="inp-label">Kode / slug laundry</div>
+          <div class="inp-wrap"><i class="ti ti-hash"></i><input type="text" id="login-slug" placeholder="contoh: elaundry" autocapitalize="none" autocomplete="off"/></div>
+        </div>
+        <div id="msg-login"></div>
+        <button class="cta-main" onclick="doLaundryLogin()">Masuk <i class="ti ti-arrow-right"></i></button>
+      </div>
+
+      <div id="auth-daftar" style="display:none">
+        <div class="auth-title">Daftarkan laundry</div>
+        <div class="auth-sub">Buat data laundry baru untuk dipakai customer dan admin.</div>
+        <div class="inp-group">
+          <div class="inp-label">Nama laundry</div>
+          <div class="inp-wrap"><i class="ti ti-building-store"></i><input type="text" id="reg-name" placeholder="Nama laundry..."/></div>
+        </div>
+        <div class="inp-group">
+          <div class="inp-label">Kode / slug</div>
+          <div class="inp-wrap"><i class="ti ti-hash"></i><input type="text" id="reg-slug" placeholder="contoh: laundry-amanah" autocapitalize="none" autocomplete="off"/></div>
+        </div>
+        <div class="inp-group">
+          <div class="inp-label">No. HP laundry</div>
+          <div class="inp-wrap"><i class="ti ti-phone"></i><input type="tel" id="reg-phone" placeholder="08xx-xxxx-xxxx"/></div>
+        </div>
+        <div class="inp-group">
+          <div class="inp-label">Alamat</div>
+          <div class="inp-wrap"><i class="ti ti-map-pin"></i><input type="text" id="reg-address" placeholder="Alamat outlet..."/></div>
+        </div>
+        <div id="msg-daftar"></div>
+        <button class="cta-main" onclick="doLaundryRegister()">Daftar & Masuk <i class="ti ti-arrow-right"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════════════════
      HOME
 ══════════════════════════════ -->
-<div class="page on" id="pg-home">
+<div class="page" id="pg-home">
   <div class="home-header">
     <div class="home-greeting">Selamat datang</div>
-    <div class="home-name">eLaundry <i class="ti ti-wash-machine" style="font-size:18px"></i></div>
+    <div class="home-name"><span id="brand-name">eLaundry</span> <i class="ti ti-wash-machine" style="font-size:18px"></i></div>
+    <div class="tenant-selected" style="color:rgba(255,255,255,.85);margin-top:8px;margin-bottom:0">
+      <span class="tenant-dot" style="background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.18)"></span>
+      <span id="tenant-selected-name">eLaundry</span>
+      <button class="tenant-switch" onclick="logoutLaundry()" style="margin-left:auto;color:#fff">Keluar</button>
+    </div>
     <div class="home-balance-label">Total pendapatan bulan ini</div>
     <div class="home-balance" id="home-total">Rp0</div>
   </div>
@@ -545,6 +619,21 @@ let ORDERS_CACHE = [];
 let ORDER_SUBMITTING = false;
 const ADMIN_PASSWORD = 'admin123';
 const ADMIN_SESSION_KEY = 'elaundry_admin_auth';
+const LAUNDRY_SESSION_KEY = 'elaundry_current_laundry';
+const DEFAULT_LAUNDRY = {
+  id:'default-elaundry',
+  slug:'elaundry',
+  name:'eLaundry',
+  logoUrl:'',
+  primaryColor:'#00AED6',
+  secondaryColor:'#0090B0',
+  phone:'',
+  address:'',
+  tagline:'Laundry kiloan lebih mudah & transparan',
+  isActive:true,
+  plan:'default'
+};
+var CURRENT_LAUNDRY = null;
 
 function supabaseReady(){
   return SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.includes('ISI_DENGAN');
@@ -563,6 +652,175 @@ async function supabaseFetch(path, options={}){
   if(res.status===204) return null;
   const text=await res.text();
   return text ? JSON.parse(text) : null;
+}
+
+function normalizeSlug(slug){
+  return String(slug||'').trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'').replace(/-+/g,'-').replace(/^-|-$/g,'');
+}
+
+function normalizeLaundry(row){
+  return {
+    id:row?.id || row?.slug || DEFAULT_LAUNDRY.id,
+    slug:normalizeSlug(row?.slug || DEFAULT_LAUNDRY.slug),
+    name:row?.name || DEFAULT_LAUNDRY.name,
+    logoUrl:row?.logo_url || '',
+    primaryColor:row?.primary_color || DEFAULT_LAUNDRY.primaryColor,
+    secondaryColor:row?.secondary_color || DEFAULT_LAUNDRY.secondaryColor,
+    phone:row?.phone || '',
+    address:row?.address || '',
+    tagline:row?.tagline || DEFAULT_LAUNDRY.tagline,
+    isActive:row?.is_active !== false,
+    plan:row?.plan || DEFAULT_LAUNDRY.plan
+  };
+}
+
+function getSavedLaundry(){
+  try{
+    const raw=localStorage.getItem(LAUNDRY_SESSION_KEY);
+    return raw ? normalizeLaundry(JSON.parse(raw)) : null;
+  }catch(e){return null}
+}
+
+function saveLaundry(laundry){
+  CURRENT_LAUNDRY=normalizeLaundry(laundry);
+  localStorage.setItem(LAUNDRY_SESSION_KEY,JSON.stringify(CURRENT_LAUNDRY));
+}
+
+function clearSavedLaundry(){
+  CURRENT_LAUNDRY=null;
+  localStorage.removeItem(LAUNDRY_SESSION_KEY);
+}
+
+async function getLaundryBySlug(slug){
+  const clean=normalizeSlug(slug);
+  if(!clean) return null;
+  if(supabaseReady()){
+    try{
+      const fields='id,slug,name,logo_url,primary_color,secondary_color,phone,address,tagline,is_active,plan';
+      const rows=await supabaseFetch(`laundries?select=${fields}&slug=eq.${encodeURIComponent(clean)}&is_active=eq.true&limit=1`);
+      return rows?.[0] ? normalizeLaundry(rows[0]) : null;
+    }catch(e){
+      console.error('Failed to load laundry by slug', e);
+      return null;
+    }
+  }
+  if(clean===DEFAULT_LAUNDRY.slug) return normalizeLaundry(DEFAULT_LAUNDRY);
+  return null;
+}
+
+async function createLaundry(laundry){
+  if(!supabaseReady()) return normalizeLaundry(laundry);
+  const payload={
+    slug:laundry.slug,
+    name:laundry.name,
+    phone:laundry.phone || null,
+    address:laundry.address || null,
+    tagline:laundry.tagline || DEFAULT_LAUNDRY.tagline,
+    primary_color:laundry.primaryColor || DEFAULT_LAUNDRY.primaryColor,
+    secondary_color:laundry.secondaryColor || DEFAULT_LAUNDRY.secondaryColor,
+    is_active:true,
+    plan:'free'
+  };
+  const rows=await supabaseFetch('laundries',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});
+  return normalizeLaundry(rows?.[0] || payload);
+}
+
+function applyLaundryBrand(laundry){
+  const l=normalizeLaundry(laundry || DEFAULT_LAUNDRY);
+  CURRENT_LAUNDRY=l;
+  document.documentElement.style.setProperty('--gp',l.primaryColor);
+  document.documentElement.style.setProperty('--gp-dark',l.secondaryColor);
+  document.title=l.name;
+  const brandName=document.getElementById('brand-name');
+  const tenantName=document.getElementById('tenant-selected-name');
+  if(brandName) brandName.textContent=l.name;
+  if(tenantName) tenantName.textContent=l.slug;
+}
+
+function orderMatchesCurrentLaundry(order){
+  if(!CURRENT_LAUNDRY) return false;
+  const orderLaundryId=order.laundryId || order.laundry_id;
+  const orderLaundrySlug=normalizeSlug(order.laundrySlug || order.laundry_slug);
+  if(orderLaundryId) return String(orderLaundryId)===String(CURRENT_LAUNDRY.id);
+  if(orderLaundrySlug) return orderLaundrySlug===CURRENT_LAUNDRY.slug;
+  return CURRENT_LAUNDRY.slug===DEFAULT_LAUNDRY.slug;
+}
+
+function switchAuthTab(t){
+  document.querySelectorAll('.auth-tab').forEach((b,i)=>b.classList.toggle('on',(i===0&&t==='login')||(i===1&&t==='daftar')));
+  document.getElementById('auth-login').style.display=t==='login'?'block':'none';
+  document.getElementById('auth-daftar').style.display=t==='daftar'?'block':'none';
+}
+
+async function doLaundryLogin(){
+  const slug=document.getElementById('login-slug').value;
+  const msg=document.getElementById('msg-login');
+  msg.innerHTML='';
+  const clean=normalizeSlug(slug);
+  if(!clean){msg.innerHTML='<div class="alert-box alert-err">Kode laundry wajib diisi.</div>';return;}
+  try{
+    const laundry=await getLaundryBySlug(clean);
+    if(!laundry){msg.innerHTML='<div class="alert-box alert-err">Laundry tidak ditemukan atau belum aktif.</div>';return;}
+    saveLaundry(laundry);
+    applyLaundryBrand(laundry);
+    goPage('pg-home');
+    loadHome();
+  }catch(e){
+    console.error('Laundry login failed', e);
+    msg.innerHTML='<div class="alert-box alert-err">Gagal masuk. Coba lagi.</div>';
+  }
+}
+
+async function doLaundryRegister(){
+  const name=document.getElementById('reg-name').value.trim();
+  const slug=normalizeSlug(document.getElementById('reg-slug').value || name);
+  const phone=document.getElementById('reg-phone').value.trim();
+  const address=document.getElementById('reg-address').value.trim();
+  const msg=document.getElementById('msg-daftar');
+  msg.innerHTML='';
+  if(!name || !slug){msg.innerHTML='<div class="alert-box alert-err">Nama dan kode laundry wajib diisi.</div>';return;}
+  try{
+    const existing=await getLaundryBySlug(slug);
+    if(existing){msg.innerHTML='<div class="alert-box alert-err">Kode laundry sudah digunakan.</div>';return;}
+    const laundry=await createLaundry({slug,name,phone,address,tagline:DEFAULT_LAUNDRY.tagline,primaryColor:DEFAULT_LAUNDRY.primaryColor,secondaryColor:DEFAULT_LAUNDRY.secondaryColor});
+    saveLaundry(laundry);
+    applyLaundryBrand(laundry);
+    goPage('pg-home');
+    loadHome();
+  }catch(e){
+    console.error('Laundry register failed', e);
+    msg.innerHTML='<div class="alert-box alert-err">Gagal daftar laundry. Coba lagi.</div>';
+  }
+}
+
+function logoutLaundry(){
+  clearSavedLaundry();
+  sessionStorage.removeItem(ADMIN_SESSION_KEY);
+  ORDERS_CACHE=[];
+  ADMIN_FILTER='';
+  const loginSlug=document.getElementById('login-slug');
+  const msgLogin=document.getElementById('msg-login');
+  const msgDaftar=document.getElementById('msg-daftar');
+  if(loginSlug) loginSlug.value='';
+  if(msgLogin) msgLogin.innerHTML='';
+  if(msgDaftar) msgDaftar.innerHTML='';
+  switchAuthTab('login');
+  setNavActive(0);
+  goPage('pg-auth');
+}
+
+function bootApp(){
+  const saved=getSavedLaundry();
+  if(saved){
+    CURRENT_LAUNDRY=saved;
+    applyLaundryBrand(saved);
+    goPage('pg-home');
+    loadHome();
+  }else{
+    goPage('pg-auth');
+  }
+  hitungEstimasi();
+  setOrderStep(1);
 }
 
 function fromOrderRow(row){
@@ -598,10 +856,14 @@ async function maybeAutoComplete(order){
 }
 
 async function fetchOrders(){
-  if(!supabaseReady()) return getOrders();
+  if(!supabaseReady()){
+    ORDERS_CACHE=getOrders().filter(orderMatchesCurrentLaundry);
+    return ORDERS_CACHE;
+  }
   const rows=await supabaseFetch('orders?select=*&order=created_at.desc');
   ORDERS_CACHE=[];
   for(const row of rows) ORDERS_CACHE.push(await maybeAutoComplete(fromOrderRow(row)));
+  ORDERS_CACHE=ORDERS_CACHE.filter(orderMatchesCurrentLaundry);
   return ORDERS_CACHE;
 }
 
@@ -616,7 +878,7 @@ async function createOrder(order){
     const orders=getOrders();
     orders.push(order);
     saveOrders(orders);
-    ORDERS_CACHE=orders;
+    ORDERS_CACHE=orders.filter(orderMatchesCurrentLaundry);
     return order;
   }
   await supabaseFetch('orders',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({
@@ -636,7 +898,7 @@ async function updateOrder(order){
     const idx=orders.findIndex(o=>o.id===order.id);
     if(idx>=0) orders[idx]=order;
     saveOrders(orders);
-    ORDERS_CACHE=orders;
+    ORDERS_CACHE=orders.filter(orderMatchesCurrentLaundry);
     return order;
   }
   const rows=await supabaseFetch(`orders?id=eq.${encodeURIComponent(order.id)}`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({
@@ -713,6 +975,7 @@ function setNavActive(i){
 }
 function isAdminAuthed(){return sessionStorage.getItem(ADMIN_SESSION_KEY)==='1'}
 function requireAdminAuth(){
+  if(CURRENT_LAUNDRY) return true;
   if(isAdminAuthed()) return true;
   const pass=prompt('Masukkan password admin');
   if(pass===ADMIN_PASSWORD){
@@ -878,6 +1141,9 @@ async function simpanOrder(){
   const order={
     id, nama:document.getElementById('inpNama').value.trim(),
     hp:document.getElementById('inpHp').value,
+    laundryId:CURRENT_LAUNDRY?.id||DEFAULT_LAUNDRY.id,
+    laundrySlug:CURRENT_LAUNDRY?.slug||DEFAULT_LAUNDRY.slug,
+    laundryName:CURRENT_LAUNDRY?.name||DEFAULT_LAUNDRY.name,
     jenis:ORDER_JENIS, jenisLabel:namaLayanan[ORDER_JENIS],
     hargaPerKg:ORDER_HARGA, beratEst:berat, hargaEst:est,
     beratAktual:null, hargaFinal:null,
@@ -1180,9 +1446,7 @@ async function bukaDetail(id){
   saveOrders(demo);
 })();
 
-loadHome();
-hitungEstimasi();
-setOrderStep(1);
+bootApp();
 </script>
 </body>
 </html>
